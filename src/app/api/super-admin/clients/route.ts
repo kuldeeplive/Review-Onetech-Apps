@@ -75,6 +75,7 @@ export async function GET() {
         slug: b.slug,
         category: b.category || 'General Business',
         bio: b.bio || '',
+        services: b.services || '',
         ownerId: b.ownerId,
         ownerName: b.owner.name,
         ownerEmail: b.owner.email,
@@ -213,6 +214,7 @@ export async function POST(req: Request) {
           slug: finalSlug,
           category: body.category || 'General Business',
           bio: body.bio || null,
+          services: body.services || 'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions',
           googleReviewUrl: googleReviewUrl || 'https://maps.google.com',
           minPositiveRating: Number(minPositiveRating) || 4,
           collectFeedbackOnLowRating: Boolean(collectFeedbackOnLowRating),
@@ -365,6 +367,7 @@ export async function PATCH(req: Request) {
     if (name !== undefined) updateData.name = name;
     if (body.category !== undefined) updateData.category = body.category;
     if (body.bio !== undefined) updateData.bio = body.bio;
+    if (body.services !== undefined) updateData.services = body.services;
     if (googleReviewUrl !== undefined) updateData.googleReviewUrl = googleReviewUrl;
     if (minPositiveRating !== undefined) updateData.minPositiveRating = Number(minPositiveRating);
     if (collectFeedbackOnLowRating !== undefined) updateData.collectFeedbackOnLowRating = Boolean(collectFeedbackOnLowRating);

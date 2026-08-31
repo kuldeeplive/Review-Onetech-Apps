@@ -34,11 +34,13 @@ export default function PublicReviewPage() {
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
   const [step, setStep] = useState<'RATING' | 'HIGH_RATING' | 'LOW_FEEDBACK' | 'FEEDBACK_SUBMITTED' | 'LOW_RATING_THANK_YOU'>('RATING');
 
-  // High rating flow states
-  const [selectedPreset, setSelectedPreset] = useState<string>('Had a wonderful experience! The service and quality were top-notch. Highly recommended! ⭐⭐⭐⭐⭐');
-  const [selectedTag, setSelectedTag] = useState<string>('');
+  // High rating flow states (Blank initially for unique generation)
+  const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [generatingAi, setGeneratingAi] = useState(false);
   const [copiedReview, setCopiedReview] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   // Low rating flow states
   const [issueCategory, setIssueCategory] = useState('');
@@ -49,10 +51,18 @@ export default function PublicReviewPage() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [discountOffer, setDiscountOffer] = useState<any>(null);
 
-  // Parse custom tags from business settings
+  // Parse services & tags from business settings
+  const servicesList: string[] = (
+    business?.services ||
+    'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions'
+  )
+    .split(',')
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+
   const positiveTagsList: string[] = (
     business?.positiveTags ||
-    'Fast & Friendly, Top Quality, Great Hospitality, Value for Money, Highly Recommended'
+    'Top Quality, Fast Delivery, Great Support, Professional Team, Highly Recommended'
   )
     .split(',')
     .map((t: string) => t.trim())
@@ -66,10 +76,23 @@ export default function PublicReviewPage() {
     .map((t: string) => t.trim())
     .filter(Boolean);
 
-  // Handle dynamic AI generation on tag click
-  const handleSelectTag = async (tag: string) => {
-    setSelectedTag(tag);
+  // Multi-select toggle helpers
+  const toggleService = (svc: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(svc) ? prev.filter((s) => s !== svc) : [...prev, svc]
+    );
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  // Generate customized AI review on user button click
+  const handleGenerateAiReview = async () => {
     setGeneratingAi(true);
+    setHasGenerated(true);
 
     try {
       const res = await fetch('/api/review/generate-ai', {
@@ -78,7 +101,8 @@ export default function PublicReviewPage() {
         body: JSON.stringify({
           businessName: business?.name || 'this business',
           slug: business?.slug || slug,
-          tag,
+          selectedServices,
+          selectedTags,
           rating: selectedRating || 5,
         }),
       });
@@ -89,7 +113,9 @@ export default function PublicReviewPage() {
       }
     } catch (e) {
       console.error('Error generating AI review:', e);
-      setSelectedPreset(`Had a wonderful experience at ${business?.name}! Particularly loved the ${tag.toLowerCase()}. Five stars all the way! ⭐⭐⭐⭐⭐`);
+      const svcText = selectedServices.length > 0 ? ` for ${selectedServices.join(' & ')}` : '';
+      const tagText = selectedTags.length > 0 ? ` Particularly impressed by their ${selectedTags.join(' and ')}.` : '';
+      setSelectedPreset(`Had a great experience with ${business?.name}${svcText}!${tagText} Highly recommended! ⭐⭐⭐⭐⭐`);
     } finally {
       setGeneratingAi(false);
     }
@@ -158,6 +184,15 @@ export default function PublicReviewPage() {
   };
 
   const handleRedirectToGoogle = async () => {
+    // If user generated or typed a review, ensure it is copied
+    if (selectedPreset.trim().length > 0) {
+      try {
+        await navigator.clipboard.writeText(selectedPreset.trim());
+      } catch (e) {
+        // Ignore clipboard permission errors
+      }
+    }
+
     // Track redirection in analytics
     try {
       await fetch(`/api/review/${slug}`, {
@@ -335,55 +370,116 @@ export default function PublicReviewPage() {
 
               {/* AI Review Assistant Generator (Rendered ONLY if enabled by client) */}
               {business?.enableAiReview !== false && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                      AI Review Assistant (1-Click Suggestions)
-                    </label>
-                    <span className="text-[10px] text-slate-500 font-medium">Tap to generate</span>
+                <div className="space-y-4">
+                  {/* Step 1: Select Services (if available) */}
+                  {servicesList.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <span>📦</span>
+                          <span>1. Select Service / Product Used</span>
+                        </label>
+                        <span className="text-[10px] text-blue-600 font-bold">Multi-select</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {servicesList.map((svc) => {
+                          const isSelected = selectedServices.includes(svc);
+                          return (
+                            <button
+                              key={svc}
+                              type="button"
+                              onClick={() => toggleService(svc)}
+                              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm scale-[1.02]'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                              }`}
+                            >
+                              <span>{isSelected ? '✓' : '+'}</span>
+                              <span>{svc}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Select Praise Aspects */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>⭐</span>
+                        <span>2. What did you like best?</span>
+                      </label>
+                      <span className="text-[10px] text-amber-600 font-bold">Multi-select</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {positiveTagsList.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
+                              isSelected
+                                ? 'bg-amber-500 border-amber-500 text-white shadow-sm scale-[1.02]'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                            }`}
+                          >
+                            <span>{isSelected ? '✓' : '+'}</span>
+                            <span>{tag}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Dynamic Praise Tags Chips */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {positiveTagsList.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => handleSelectTag(tag)}
-                        disabled={generatingAi}
-                        className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border transition flex items-center gap-1 ${
-                          selectedTag === tag
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        {generatingAi && selectedTag === tag ? (
-                          <RefreshCw className="w-3 h-3 animate-spin text-white" />
-                        ) : (
-                          <span>+</span>
-                        )}
-                        <span>{tag}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {/* Big Dedicated "Generate AI Review" Button */}
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiReview}
+                    disabled={generatingAi}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 cursor-pointer"
+                  >
+                    {generatingAi ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Generating your unique review...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                        <span>
+                          {hasGenerated ? '✨ Re-generate Fresh Review' : '✨ Generate AI Review (1-Click)'}
+                        </span>
+                      </>
+                    )}
+                  </button>
 
-                  {/* Editable Review Text Box */}
-                  <div className="relative mt-2">
+                  {/* Editable Review Text Box (Blank until generated or typed) */}
+                  <div className="relative">
                     <textarea
                       rows={3}
                       value={selectedPreset}
                       onChange={(e) => setSelectedPreset(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white resize-none font-medium leading-relaxed"
+                      placeholder="Select your service & what you loved above, then tap 'Generate AI Review' to create a unique 5-star review (or type your own here)..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white resize-none font-medium leading-relaxed"
                     />
-                    <button
-                      type="button"
-                      onClick={handleCopyReview}
-                      className="absolute right-2.5 bottom-3 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-[10px] font-bold transition flex items-center gap-1 shadow-sm"
-                    >
-                      {copiedReview ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      {copiedReview ? 'Copied!' : 'Copy Text'}
-                    </button>
+                    {selectedPreset.trim().length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleCopyReview}
+                        className="absolute right-2.5 bottom-3 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-[10px] font-bold transition flex items-center gap-1 shadow-sm"
+                      >
+                        {copiedReview ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                        <span>{copiedReview ? 'Copied!' : 'Copy Text'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

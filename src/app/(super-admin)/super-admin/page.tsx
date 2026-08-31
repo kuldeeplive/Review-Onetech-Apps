@@ -249,6 +249,7 @@ export default function SuperAdminPage() {
     customSlug: '',
     category: 'IT & Software',
     bio: '',
+    services: 'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions',
     ownerName: '',
     ownerEmail: '',
     ownerPassword: '',
@@ -397,6 +398,7 @@ export default function SuperAdminPage() {
         customSlug: '',
         category: 'IT & Software',
         bio: '',
+        services: 'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions',
         ownerName: '',
         ownerEmail: '',
         ownerPassword: '',
@@ -1388,7 +1390,24 @@ export default function SuperAdminPage() {
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
                   />
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Brief 1-2 lines on what this business offers. AI uses this to craft authentic, relevant 5-star reviews.
+                    Brief 1-2 lines on what this business offers. AI uses this for background context.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                    <span>🛍️ Services / Products (For Customer Chips)</span>
+                    <span className="text-[10px] text-blue-600 font-bold">Comma-separated</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Web Development, Mobile Apps, UI/UX Design, Cloud Hosting"
+                    value={formData.services}
+                    onChange={(e) => setFormData({ ...formData, services: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    These will appear as multi-select buttons for the customer to choose only the service they used.
                   </p>
                 </div>
               </div>
@@ -1848,7 +1867,24 @@ export default function SuperAdminPage() {
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
                   />
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Brief description of products/services so AI writes pinpoint, relevant 5-star reviews.
+                    Brief description of products/services so AI has accurate background context.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                    <span>🛍️ Services / Products (For Customer Chips)</span>
+                    <span className="text-[10px] text-blue-600 font-bold">Comma-separated</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Web Development, Mobile Apps, UI/UX Design, Cloud Hosting"
+                    value={selectedClient.services || ''}
+                    onChange={(e) => setSelectedClient({ ...selectedClient, services: e.target.value })}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    These appear as multi-select buttons for the customer to choose only the service they used.
                   </p>
                 </div>
               </div>

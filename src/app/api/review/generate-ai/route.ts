@@ -168,9 +168,18 @@ function generateSmartDynamicReview(
 
 export async function POST(req: Request) {
   try {
-    const { businessName, slug, tag, rating = 5 } = await req.json();
+    const body = await req.json();
+    const {
+      businessName,
+      slug,
+      tag,
+      service,
+      selectedTags = [],
+      selectedServices = [],
+      rating = 5,
+    } = body;
 
-    // 1. Fetch Business details (category & bio) from database if slug or businessName is provided
+    // 1. Fetch Business details (category, bio, services) from database
     let businessCategory = 'General Business';
     let businessBio = '';
     let resolvedName = businessName || 'this business';
@@ -178,7 +187,7 @@ export async function POST(req: Request) {
     if (slug) {
       const b = await prisma.business.findUnique({
         where: { slug },
-        select: { name: true, category: true, bio: true },
+        select: { name: true, category: true, bio: true, services: true },
       });
       if (b) {
         resolvedName = b.name;
@@ -188,13 +197,30 @@ export async function POST(req: Request) {
     } else if (businessName) {
       const b = await prisma.business.findFirst({
         where: { name: businessName },
-        select: { name: true, category: true, bio: true },
+        select: { name: true, category: true, bio: true, services: true },
       });
       if (b) {
         if (b.category) businessCategory = b.category;
         if (b.bio) businessBio = b.bio;
       }
     }
+
+    // Normalize tags & services
+    const tagsList: string[] =
+      Array.isArray(selectedTags) && selectedTags.length > 0
+        ? selectedTags
+        : tag
+        ? [tag]
+        : ['Top Quality', 'Highly Recommended'];
+
+    const servicesList: string[] =
+      Array.isArray(selectedServices) && selectedServices.length > 0
+        ? selectedServices
+        : service
+        ? [service]
+        : [];
+
+    const primaryAspect = tagsList[0] || 'Top Quality';
 
     // 2. Fetch Admin AI Configuration from database
     let activeProvider = 'gemini';
@@ -216,18 +242,26 @@ export async function POST(req: Request) {
       console.warn('Could not read systemSetting table, fallback to env:', dbErr);
     }
 
+    const servicesFocusText =
+      servicesList.length > 0
+        ? `The customer used ONLY these specific service(s): "${servicesList.join(', ')}". (Mention ONLY these services. Do NOT list or mention other services from the company).`
+        : `Background context: "${businessBio || 'Top quality customer services'}".`;
+
+    const praiseFocusText = `Specific praise aspects to highlight: "${tagsList.join(', ')}".`;
+
     // Craft unambiguous, strict prompt
     const prompt = customPrompt
-      ? `${customPrompt}\nBusiness Name: "${resolvedName}"\nIndustry/Category: "${businessCategory}"\nAbout: "${businessBio}"\nPraise Aspect: "${tag}"\nOutput only the final 2-3 sentence review text.`
-      : `Write a natural 5-star Google review for "${resolvedName}".
-Business Type: "${businessCategory}"
-What they do: "${businessBio || 'Top quality services & customer care'}"
-Key Aspect to Highlight: "${tag}"
+      ? `${customPrompt}\nBusiness Name: "${resolvedName}"\nCategory: "${businessCategory}"\n${servicesFocusText}\n${praiseFocusText}\nWrite a fresh, unique 2-to-3 sentence review text.`
+      : `Write an authentic, unique 5-star Google review for "${resolvedName}".
+Business Category: "${businessCategory}"
+${servicesFocusText}
+${praiseFocusText}
 
-CRITICAL INSTRUCTIONS:
-- Write exactly 2 to 3 natural, positive, and authentic sentences as a delighted real customer.
-- Mention or reflect their actual services/business naturally so the review is highly relevant.
-- Do NOT output bullet points, persona lists, options (like Option 1), formatting rules, markdown headers, or quotes.
+STRICT INSTRUCTIONS:
+- Write exactly 2 to 3 natural, positive, and realistic sentences from the perspective of a real customer.
+- Focus ONLY on the specific service(s) and praise aspects mentioned above.
+- Make the wording natural, varied, and unique.
+- Do NOT output bullet points, personas, options (like Option 1), formatting rules, markdown headers, or quotes.
 - Output ONLY the review paragraph text.`;
 
     // 3. If Google Gemini is active and key is available
@@ -236,7 +270,7 @@ CRITICAL INSTRUCTIONS:
         const geminiResult = await callGeminiApi(geminiKey, prompt, 1000);
 
         if (geminiResult.success && geminiResult.text) {
-          const cleanReview = sanitizeAiReview(geminiResult.text, resolvedName, tag);
+          const cleanReview = sanitizeAiReview(geminiResult.text, resolvedName, primaryAspect);
           return NextResponse.json({
             success: true,
             review: cleanReview,

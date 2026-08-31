@@ -40,6 +40,7 @@ export default function SettingsPage() {
     name: '',
     category: 'IT & Software',
     bio: '',
+    services: 'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions',
     googleReviewUrl: '',
     minPositiveRating: 4,
     collectFeedbackOnLowRating: true,
@@ -128,6 +129,7 @@ export default function SettingsPage() {
           name: data.business.name || '',
           category: data.business.category || 'IT & Software',
           bio: data.business.bio || '',
+          services: data.business.services || 'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions',
           googleReviewUrl: data.business.googleReviewUrl || '',
           minPositiveRating: data.business.minPositiveRating || 4,
           collectFeedbackOnLowRating: data.business.collectFeedbackOnLowRating ?? true,
@@ -488,37 +490,55 @@ export default function SettingsPage() {
             {/* 1-Click Industry Presets Bar */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
               <label className="block text-xs font-bold text-slate-700">
-                ⚡ 1-Click Industry Presets:
+                ⚡ 1-Click Industry Presets (Fills Category, Bio, Services & Tags):
               </label>
               <div className="flex flex-wrap gap-2">
                 {[
                   {
+                    name: '💻 Tech Company / Agency',
+                    category: 'IT & Software Solutions',
+                    bio: 'We build custom web applications, mobile apps, UI/UX designs, and cloud software solutions.',
+                    services: 'Custom Web Development, Mobile Apps, UI/UX Design, Cloud Hosting, API Integration',
+                    positiveTags: 'Top Quality, Fast Delivery, Great Support, Professional Team, Highly Recommended',
+                    issueCategories: 'Project Delay, Technical Bug, Communication Lag, Pricing / Scope, Other Issue',
+                  },
+                  {
                     name: '🍽️ Restaurant / Cafe',
+                    category: 'Restaurant & Cafe',
+                    bio: 'Authentic gourmet dining, delicious meals, cozy ambience, and refreshing beverages.',
+                    services: 'Dine-in, Takeaway / Delivery, Main Course, Fast Food, Desserts & Drinks',
                     positiveTags: 'Delicious Food, Fast Service, Great Ambiance, Friendly Staff, Value for Money',
                     issueCategories: 'Food Quality, Order Delay, Staff Behavior, Cleanliness & Hygiene, Pricing / Billing, Other Issue',
                   },
                   {
                     name: '🏥 Hospital / Clinic',
+                    category: 'Healthcare & Clinic',
+                    bio: 'Comprehensive healthcare, experienced doctors, modern diagnostics, and compassionate patient care.',
+                    services: 'Doctor Consultation, Dental Care, Lab Tests, Pharmacy, Emergency Care',
                     positiveTags: 'Best Doctors, Caring Nursing Staff, Clean Premises, Painless Treatment, Quick Recovery',
                     issueCategories: 'Doctor Consultation, Long Wait Time, Staff Behavior, Hygiene, Billing / Pharmacy, Other Issue',
                   },
                   {
-                    name: '💻 Tech Company / Agency',
-                    positiveTags: 'Fast Delivery, Clean Code, Great Communication, Helpful Support, Professional Team',
-                    issueCategories: 'Project Delay, Technical Bug, Communication Lag, Pricing / Scope, Other Issue',
-                  },
-                  {
                     name: '💇 Salon, Spa & Beauty',
+                    category: 'Salon & Spa',
+                    bio: 'Premium hair styling, relaxing skincare spa, bridal makeovers, and grooming services.',
+                    services: 'Haircut & Styling, Facial & Cleanup, Body Spa, Hair Color, Bridal Makeup',
                     positiveTags: 'Skilled Stylists, Relaxing Ambience, Premium Products, Great Haircut, Friendly Staff',
                     issueCategories: 'Hair / Skin Service, Long Wait Time, Staff Behavior, Hygiene, Pricing, Other Issue',
                   },
                   {
                     name: '🛍️ Retail Store / Showroom',
+                    category: 'Retail & Shopping',
+                    bio: 'Wide range of quality products, trending collections, and great shopping experience.',
+                    services: 'In-store Shopping, Home Delivery, Product Warranty, Exchange / Return, Gift Vouchers',
                     positiveTags: 'Huge Variety, Top Quality, Helpful Staff, Easy Billing, Great Discounts',
                     issueCategories: 'Product Quality, Size / Fitting, Staff Assistance, Billing Queue, Pricing, Other Issue',
                   },
                   {
                     name: '🏋️ Gym & Fitness',
+                    category: 'Fitness & Gym',
+                    bio: 'State-of-the-art gym equipment, certified personal training, and healthy fitness coaching.',
+                    services: 'Gym Membership, Personal Training, Weight Loss Program, Cardio & Yoga, Diet Plan',
                     positiveTags: 'Modern Equipment, Certified Trainers, Clean & Sanitized, Motivating Atmosphere, Great Value',
                     issueCategories: 'Trainer Availability, Equipment Maintenance, Cleanliness, Crowd / Timing, Fee Issues, Other Issue',
                   },
@@ -529,6 +549,9 @@ export default function SettingsPage() {
                     onClick={() =>
                       setFormData({
                         ...formData,
+                        category: preset.category,
+                        bio: preset.bio,
+                        services: preset.services,
                         positiveTags: preset.positiveTags,
                         issueCategories: preset.issueCategories,
                       })
@@ -563,7 +586,7 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-900 mb-1">
-                    Business Bio / What do you do? (For AI Review Generator)
+                    Business Bio / What do you do? (For AI Background Context)
                   </label>
                   <textarea
                     rows={2}
@@ -573,8 +596,42 @@ export default function SettingsPage() {
                     className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium leading-relaxed"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">
-                    Describe your core products, services, or specialties. The AI engine reads this to generate 100% accurate, realistic 5-star reviews for your customers.
+                    Brief description of your business. AI uses this for background tone.
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-900 mb-1 flex items-center justify-between">
+                    <span>🛍️ Services & Products List (Customer Selection Chips)</span>
+                    <span className="text-[10px] text-indigo-600 font-bold">Comma-separated</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.services}
+                    onChange={(e) => setFormData({ ...formData, services: e.target.value })}
+                    placeholder="e.g. Custom Web Development, Mobile Apps, UI/UX Design, Cloud Hosting"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Customers will see these as buttons on the 5-star screen. They can select ONLY the service they actually took, keeping reviews 100% focused and realistic.
+                  </p>
+                  {/* Chips Preview */}
+                  {formData.services && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {formData.services
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                        .map((svc, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 text-[11px] font-bold shadow-xs"
+                          >
+                            📦 {svc}
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

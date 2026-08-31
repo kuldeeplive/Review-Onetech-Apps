@@ -31,6 +31,7 @@ model Business {
   slug                       String          @unique
   category                   String?         @default("General Business") // e.g. "IT & Software", "Restaurant / Cafe", "Dental Clinic", "Salon & Spa"
   bio                        String?         // Brief 1-2 sentence description of products/services for AI review generator
+  services                   String?         @default("Custom Web Development, Mobile Apps, UI/UX Design, Cloud Solutions") // Comma-separated list of services/products
   logoUrl                    String?
   bannerUrl                  String?
   primaryColor               String          @default("#2563eb")
@@ -45,7 +46,7 @@ model Business {
   
   // AI Review Assistant & Dynamic Praise Tags
   enableAiReview             Boolean         @default(true) // Client toggle: show AI review suggestions on high ratings
-  positiveTags               String?         @default("Fast & Friendly, Top Quality, Great Hospitality, Value for Money, Highly Recommended")
+  positiveTags               String?         @default("Top Quality, Fast Delivery, Great Support, Professional Team, Highly Recommended")
   
   // Apology Voucher settings
   enableDiscountOffer        Boolean         @default(true) // Client toggle: show apology discount voucher or not
