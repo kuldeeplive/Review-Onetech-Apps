@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      no_cache: true
     restart: always
     ports:
       - "13005:3000"
