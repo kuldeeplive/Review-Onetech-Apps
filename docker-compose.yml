@@ -1,14 +1,11 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      no_cache: true
     restart: always
     ports:
-      - "4005:3000"
+      - "3000:3000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
