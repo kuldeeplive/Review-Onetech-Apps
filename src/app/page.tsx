@@ -50,22 +50,23 @@ export default function RootLoginPage() {
 
       {/* Header Logo & Title */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-4">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white border border-slate-200/80 shadow-xl shadow-blue-500/10 mb-4 p-2.5 transition-transform hover:scale-105">
-          <img src="/logo.webp" alt="AI Magic Review" className="w-full h-full object-contain" />
+        <div className="mb-4 flex justify-center">
+          <img
+            src="/logo.webp"
+            alt="AI Magic Review"
+            className="h-24 sm:h-28 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform"
+          />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-2">
-          <span>AI Magic Review</span>
-          <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-            Portal
-          </span>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          AI Magic Review
         </h1>
-        <p className="mt-1.5 text-xs sm:text-sm text-slate-500 font-medium">
-          Smart 5-Star Google Review Management & Multi-Tenant SaaS
+        <p className="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
+          Smart 5-Star Google Review Management
         </p>
       </div>
 
       {/* Login Card */}
-      <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
         <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 py-8 px-6 sm:px-10 shadow-xl shadow-slate-900/5 rounded-3xl">
           {error && (
             <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2.5">

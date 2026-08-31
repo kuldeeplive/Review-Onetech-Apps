@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
-    const { currentPassword, newPassword } = await req.json();
+    const { currentPassword, newPassword, targetUserId } = await req.json();
 
     if (!newPassword || newPassword.trim().length < 6) {
       return NextResponse.json(
@@ -21,17 +21,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch user from DB to get latest password hash
+    // Determine target user (defaults to current user, or any target user if called by Super Admin)
+    const targetId =
+      authUser.role === 'SUPER_ADMIN' && targetUserId ? targetUserId : authUser.userId;
+
     const dbUser = await prisma.user.findUnique({
-      where: { id: authUser.userId },
+      where: { id: targetId },
     });
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User account not found' }, { status: 404 });
     }
 
-    // Verify current password (unless user has no password set or is Super Admin with override)
-    if (currentPassword) {
+    // If regular user (non-Super Admin), require and verify current password
+    if (authUser.role !== 'SUPER_ADMIN') {
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: 'Current password is required to change password.' },
+          { status: 400 }
+        );
+      }
       const isMatch = await bcrypt.compare(currentPassword, dbUser.password);
       if (!isMatch) {
         return NextResponse.json(
@@ -39,11 +48,6 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-    } else {
-      return NextResponse.json(
-        { error: 'Current password is required to change password.' },
-        { status: 400 }
-      );
     }
 
     // Hash new password
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Password updated successfully! Please use your new password for future logins.',
+      message: `Password for ${dbUser.email} updated successfully!`,
     });
   } catch (error: any) {
     console.error('Change password error:', error);
