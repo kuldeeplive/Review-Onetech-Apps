@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  password     String
+  role         String     @default("BUSINESS_OWNER") // "SUPER_ADMIN" | "BUSINESS_OWNER"
+  phone        String?
+  businesses   Business[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Business {
+  id                         String          @id @default(cuid())
+  ownerId                    String
+  owner                      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name                       String
+  slug                       String          @unique
+  logoUrl                    String?
+  bannerUrl                  String?
+  primaryColor               String          @default("#2563eb")
+  googleReviewUrl            String          @default("https://maps.google.com")
+  placeId                    String?
+  minPositiveRating          Int             @default(4) // 3, 4, or 5 stars threshold
+  isActive                   Boolean         @default(true) // Super Admin status toggle
+  
+  // Feedback collection settings
+  collectFeedbackOnLowRating Boolean         @default(true) // Client toggle: collect private feedback or just thank customer
+  issueCategories            String?         @default("Service Speed, Product Quality, Staff Behavior, Cleanliness & Hygiene, Pricing / Billing, Other Issue")
+  
+  // AI Review Assistant & Dynamic Praise Tags
+  enableAiReview             Boolean         @default(true) // Client toggle: show AI review suggestions on high ratings
+  positiveTags               String?         @default("Fast & Friendly, Top Quality, Great Hospitality, Value for Money, Highly Recommended")
+  
+  // Apology Voucher settings
+  enableDiscountOffer        Boolean         @default(true) // Client toggle: show apology discount voucher or not
+  discountOfferTitle         String?         @default("Special 10% Discount Offer")
+  discountOfferCode          String?         @default("THANKYOU10")
+  discountOfferText          String?         @default("Thank you for helping us improve! Show this voucher code on your next visit to get 10% off.")
+  
+  // Standee Customization
+  standeeTemplate            String          @default("modern_gradient") // "modern_gradient", "luxury_gold", "minimal_bold", "emerald_fresh"
+  standeeTagline             String          @default("Loved your visit? Share your feedback!")
+  
+  // SaaS Plan details
+  planName                   String          @default("Pro Plan")
+  planPrice                  String?         @default("₹999/mo")
+  planExpiresAt              DateTime?
+  monthlyScanLimit           Int             @default(500) // -1 for Unlimited, or positive integer (e.g. 100, 500, 1000, 10000)
+  
+  // Alerts
+  notificationEmail          String?
+  notificationPhone          String?
+  whatsappAlertEnabled       Boolean         @default(true)
+  
+  // Custom messages
+  positiveMessage            String?         @default("We're thrilled you had a great experience! Would you take 10 seconds to share your review on Google?")
+  negativeMessage            String?         @default("We are truly sorry that we didn't meet your expectations. Please share your private feedback with our management team directly so we can resolve this immediately.")
+  
+  feedbacks                  Feedback[]
+  scans                      ScanAnalytics[]
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+}
+
+model Feedback {
+  id             String    @id @default(cuid())
+  businessId     String
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  rating         Int
+  customerName   String?
+  customerPhone  String?
+  customerEmail  String?
+  issueCategory  String?   // "Food/Product Quality", "Service Speed", "Staff Behavior", "Cleanliness", "Pricing", "Other"
+  comment        String
+  status         String    @default("PENDING") // "PENDING", "CONTACTED", "RESOLVED"
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model ScanAnalytics {
+  id             String    @id @default(cuid())
+  businessId     String
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ratingSelected Int?
+  action         String    @default("PAGE_VIEW") // "PAGE_VIEW", "REDIRECTED_GOOGLE", "SUBMITTED_FEEDBACK", "LOW_RATING_NO_FEEDBACK"
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+}
+
+model SystemSetting {
+  id             String    @id @default("global_config")
+  aiProvider     String    @default("gemini") // "gemini", "openai", "smart_randomizer"
+  geminiApiKey   String?
+  openAiApiKey   String?
+  aiCustomPrompt String?
+  updatedAt      DateTime  @updatedAt
+}
+
