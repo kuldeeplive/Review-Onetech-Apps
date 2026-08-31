@@ -8,7 +8,7 @@ services:
       no_cache: true
     restart: always
     ports:
-      - "25000:3000"
+      - "4005:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
