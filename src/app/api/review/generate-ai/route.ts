@@ -177,6 +177,7 @@ export async function POST(req: Request) {
       selectedTags = [],
       selectedServices = [],
       rating = 5,
+      language = 'English',
     } = body;
 
     // 1. Fetch Business details (category, bio, services) from database
@@ -253,18 +254,55 @@ export async function POST(req: Request) {
 
     const praiseFocusText = `Specific praise aspects to highlight: "${tagsList.join(', ')}".`;
 
+    // Language Instructions
+    let languageInstruction = 'Write the review in English.';
+    if (language === 'Hinglish') {
+      languageInstruction =
+        'Language: Hinglish (Conversational Hindi written in Roman/English script, e.g. "Service sach me bohot acchi hai, staff bhi polite hai. Definitely 5 stars!"). Write ONLY in Hinglish.';
+    } else if (language === 'Hindi' || language === 'हिंदी') {
+      languageInstruction =
+        'Language: Pure Hindi (Devanagari script, e.g. "इनकी सेवाएं बहुत ही शानदार और विश्वसनीय हैं।"). Write ONLY in Hindi Devanagari.';
+    } else if (language === 'Gujarati' || language === 'ગુજરાતી') {
+      languageInstruction =
+        'Language: Gujarati (Write fluent review in Gujarati script ગુજરાતી).';
+    } else if (language === 'Marathi' || language === 'मराठी') {
+      languageInstruction =
+        'Language: Marathi (Write fluent review in Marathi script मराठी).';
+    } else if (language === 'Punjabi' || language === 'ਪੰਜਾਬੀ') {
+      languageInstruction =
+        'Language: Punjabi (Write fluent review in Gurmukhi script ਪੰਜਾਬੀ).';
+    } else if (language === 'Bengali' || language === 'বাংলা') {
+      languageInstruction =
+        'Language: Bengali (Write fluent review in Bengali script বাংলা).';
+    } else if (language === 'Tamil' || language === 'தமிழ்') {
+      languageInstruction =
+        'Language: Tamil (Write fluent review in Tamil script தமிழ்).';
+    } else if (language === 'Telugu' || language === 'తెలుగు') {
+      languageInstruction =
+        'Language: Telugu (Write fluent review in Telugu script తెలుగు).';
+    } else if (language === 'Arabic' || language === 'العربية') {
+      languageInstruction =
+        'Language: Arabic (Write fluent review in Arabic script العربية).';
+    } else if (language === 'Spanish') {
+      languageInstruction = 'Language: Spanish (Español).';
+    } else if (language && language !== 'English') {
+      languageInstruction = `Language: ${language}.`;
+    }
+
     // Craft unambiguous, strict prompt
     const prompt = customPrompt
-      ? `${customPrompt}\nBusiness Name: "${resolvedName}"\nCategory: "${businessCategory}"\n${servicesFocusText}\n${praiseFocusText}\nWrite a fresh, unique 2-to-3 sentence review text.`
+      ? `${customPrompt}\nBusiness Name: "${resolvedName}"\nCategory: "${businessCategory}"\n${servicesFocusText}\n${praiseFocusText}\n${languageInstruction}\nWrite a fresh, unique 2-to-3 sentence review text in ${language}.`
       : `Write an authentic, unique 5-star Google review for "${resolvedName}".
 Business Category: "${businessCategory}"
 ${servicesFocusText}
 ${praiseFocusText}
+Target Language: ${languageInstruction}
 
 STRICT INSTRUCTIONS:
 - Write exactly 2 to 3 natural, positive, and realistic sentences from the perspective of a real customer.
+- Write the ENTIRE review in the requested language (${language}).
 - Focus ONLY on the specific service(s) and praise aspects mentioned above.
-- Make the wording natural, varied, and unique.
+- Make the wording natural, varied, and authentic.
 - Do NOT output bullet points, personas, options (like Option 1), formatting rules, markdown headers, or quotes.
 - Output ONLY the review paragraph text.`;
 

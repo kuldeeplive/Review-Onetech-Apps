@@ -38,6 +38,7 @@ export default function PublicReviewPage() {
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
   const [generatingAi, setGeneratingAi] = useState(false);
   const [copiedReview, setCopiedReview] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
@@ -90,9 +91,11 @@ export default function PublicReviewPage() {
   };
 
   // Generate customized AI review on user button click
-  const handleGenerateAiReview = async () => {
+  const handleGenerateAiReview = async (overrideLanguage?: string) => {
     setGeneratingAi(true);
     setHasGenerated(true);
+
+    const langToUse = overrideLanguage || selectedLanguage;
 
     try {
       const res = await fetch('/api/review/generate-ai', {
@@ -103,6 +106,7 @@ export default function PublicReviewPage() {
           slug: business?.slug || slug,
           selectedServices,
           selectedTags,
+          language: langToUse,
           rating: selectedRating || 5,
         }),
       });
@@ -435,10 +439,53 @@ export default function PublicReviewPage() {
                     </div>
                   </div>
 
+                  {/* Step 3: Select Review Language (भाषा) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>🌐</span>
+                        <span>3. Select Review Language (भाषा)</span>
+                      </label>
+                      <span className="text-[10px] text-indigo-600 font-bold">{selectedLanguage}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { id: 'English', label: '🇬🇧 English' },
+                        { id: 'Hinglish', label: '🇮🇳 Hinglish' },
+                        { id: 'Hindi', label: '🇮🇳 हिंदी' },
+                        { id: 'Gujarati', label: '🇮🇳 ગુજરાતી' },
+                        { id: 'Marathi', label: '🇮🇳 मराठी' },
+                        { id: 'Punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
+                        { id: 'Bengali', label: '🇮🇳 বাংলা' },
+                        { id: 'Tamil', label: '🇮🇳 தமிழ்' },
+                        { id: 'Telugu', label: '🇮🇳 తెలుగు' },
+                        { id: 'Arabic', label: '🇦🇪 العربية' },
+                        { id: 'Spanish', label: '🇪🇸 Español' },
+                      ].map((lang) => {
+                        const isSelected = selectedLanguage === lang.id;
+                        return (
+                          <button
+                            key={lang.id}
+                            type="button"
+                            onClick={() => setSelectedLanguage(lang.id)}
+                            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
+                              isSelected
+                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm scale-[1.02]'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                            }`}
+                          >
+                            <span>{isSelected ? '✓ ' : ''}</span>
+                            <span>{lang.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Big Dedicated "Generate AI Review" Button */}
                   <button
                     type="button"
-                    onClick={handleGenerateAiReview}
+                    onClick={() => handleGenerateAiReview()}
                     disabled={generatingAi}
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 cursor-pointer"
                   >
