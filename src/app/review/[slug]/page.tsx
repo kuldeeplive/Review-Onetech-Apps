@@ -170,9 +170,16 @@ export default function PublicReviewPage() {
       console.error(e);
     }
 
-    // Open Google Review URL in new tab / redirect
+    // Open Google Review URL with strict 100% blank referrer (no-referrer)
     if (business?.googleReviewUrl) {
-      window.location.href = business.googleReviewUrl;
+      const link = document.createElement('a');
+      link.href = business.googleReviewUrl;
+      link.rel = 'noreferrer noopener';
+      link.referrerPolicy = 'no-referrer';
+      link.target = '_self';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
