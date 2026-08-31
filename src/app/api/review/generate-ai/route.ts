@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { callGeminiApi } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +113,7 @@ export async function POST(req: Request) {
     let activeProvider = 'gemini';
     let geminiKey = process.env.GEMINI_API_KEY;
     let openAiKey = process.env.OPENAI_API_KEY;
+    let customPrompt: string | null = null;
 
     try {
       const config = await prisma.systemSetting.findUnique({
@@ -121,6 +123,7 @@ export async function POST(req: Request) {
         if (config.aiProvider) activeProvider = config.aiProvider;
         if (config.geminiApiKey) geminiKey = config.geminiApiKey;
         if (config.openAiApiKey) openAiKey = config.openAiApiKey;
+        if (config.aiCustomPrompt) customPrompt = config.aiCustomPrompt;
       }
     } catch (dbErr) {
       console.warn('Could not read systemSetting table, fallback to env:', dbErr);
@@ -129,33 +132,18 @@ export async function POST(req: Request) {
     // 2. If Google Gemini is active and key is available
     if ((activeProvider === 'gemini' || !openAiKey) && geminiKey) {
       try {
-        const prompt = `You are a satisfied real customer writing an authentic, natural, 2-to-3-sentence 5-star Google review for "${businessName}". Highlight the aspect: "${tag}". Make it sound casual, genuine, positive, and human. Do not include quotes, markdown bold, or intro text. Just the review body.`;
+        const prompt = customPrompt
+          ? `${customPrompt}\nBusiness Name: "${businessName}", Highlight: "${tag}"`
+          : `You are a satisfied real customer writing an authentic, natural, 2-to-3-sentence 5-star Google review for "${businessName}". Highlight the aspect: "${tag}". Make it sound casual, genuine, positive, and human. Do not include quotes, markdown bold, or intro text. Just the review body.`;
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                maxOutputTokens: 120,
-                temperature: 0.85,
-              },
-            }),
-          }
-        );
+        const geminiResult = await callGeminiApi(geminiKey, prompt, 120);
 
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-          if (generatedText) {
-            return NextResponse.json({
-              success: true,
-              review: generatedText.replace(/^["']|["']$/g, ''),
-              source: 'gemini',
-            });
-          }
+        if (geminiResult.success && geminiResult.text) {
+          return NextResponse.json({
+            success: true,
+            review: geminiResult.text,
+            source: `gemini (${geminiResult.modelUsed})`,
+          });
         }
       } catch (err) {
         console.error('Gemini API call failed, trying fallback:', err);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { callGeminiApi } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,38 +30,22 @@ export async function POST(req: Request) {
 
     // 1. Test Google Gemini API
     if (provider === 'gemini') {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: testPrompt }] }],
-            generationConfig: {
-              maxOutputTokens: 80,
-              temperature: 0.7,
-            },
-          }),
-        }
-      );
+      const result = await callGeminiApi(apiKey, testPrompt, 80);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!result.success) {
         return NextResponse.json(
           {
             success: false,
-            error: data?.error?.message || `Google Gemini API Error (Status ${response.status})`,
+            error: result.error || 'Google Gemini API Connection Failed',
           },
           { status: 400 }
         );
       }
 
-      const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
       return NextResponse.json({
         success: true,
-        message: 'Google Gemini 1.5 Flash API Connected Successfully! ✅',
-        sampleOutput: generatedText || 'Review generated successfully!',
+        message: `Google Gemini API Connected Successfully! (${result.modelUsed}) ✅`,
+        sampleOutput: result.text || 'Review generated successfully!',
       });
     }
 
