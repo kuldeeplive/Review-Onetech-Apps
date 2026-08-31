@@ -228,6 +228,19 @@ export async function POST(req: Request) {
         },
       });
 
+      // Record initial transaction
+      await tx.subscriptionTransaction.create({
+        data: {
+          businessId: newBusiness.id,
+          planName: planName || 'Pro Plan',
+          amount: planPrice || '₹999/mo',
+          durationDays: Number(durationDays) || 365,
+          status: 'PAID',
+          paymentMethod: 'DIRECT_ADMIN',
+          notes: 'Initial Plan Onboarding',
+        },
+      });
+
       return { user: newUser, business: newBusiness };
     });
 
@@ -321,6 +334,19 @@ export async function PATCH(req: Request) {
       const updated = await prisma.business.update({
         where: { id: businessId },
         data: { planExpiresAt: newExpiry, isActive: true },
+      });
+
+      // Record transaction
+      await prisma.subscriptionTransaction.create({
+        data: {
+          businessId: currentBusiness.id,
+          planName: currentBusiness.planName || 'Plan Extended',
+          amount: currentBusiness.planPrice || 'Extension',
+          durationDays: Number(extendDays),
+          status: 'EXTENDED',
+          paymentMethod: 'DIRECT_ADMIN',
+          notes: `Subscription extended by ${extendDays} days by Super Admin`,
+        },
       });
 
       return NextResponse.json({

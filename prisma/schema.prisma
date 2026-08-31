@@ -72,6 +72,7 @@ model Business {
   
   feedbacks                  Feedback[]
   scans                      ScanAnalytics[]
+  transactions               SubscriptionTransaction[]
   createdAt                  DateTime        @default(now())
   updatedAt                  DateTime        @updatedAt
 }
@@ -109,5 +110,31 @@ model SystemSetting {
   openAiApiKey   String?
   aiCustomPrompt String?
   updatedAt      DateTime  @updatedAt
+}
+
+model Plan {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  price            String    @default("₹999/mo")
+  durationDays     Int       @default(365)
+  monthlyScanLimit Int       @default(500) // -1 for Unlimited
+  features         String    @default("AI Smart Review Generator, QR Standee Studio, Private Negative Feedback Gating, WhatsApp & Email Alerts, Custom Discount Offers")
+  badge            String?   // e.g. "Most Popular", "Best Value", "Starter"
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model SubscriptionTransaction {
+  id            String    @id @default(cuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planName      String
+  amount        String
+  durationDays  Int
+  status        String    @default("PAID") // "PAID", "ACTIVE", "EXTENDED", "EXPIRED"
+  paymentMethod String?   @default("DIRECT_ADMIN")
+  notes         String?
+  createdAt     DateTime  @default(now())
 }
 

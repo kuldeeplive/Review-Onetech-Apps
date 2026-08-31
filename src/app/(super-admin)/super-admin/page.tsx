@@ -37,6 +37,9 @@ import {
   EyeOff,
   Lock,
   AlertCircle,
+  Layers,
+  CreditCard,
+  Package,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -49,7 +52,121 @@ export default function SuperAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'CLIENTS' | 'AI_CONFIG'>('CLIENTS');
+  const [activeTab, setActiveTab] = useState<'CLIENTS' | 'PLANS' | 'AI_CONFIG'>('CLIENTS');
+
+  // Plans Management State
+  const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [planForm, setPlanForm] = useState({
+    name: '',
+    price: '₹999/mo',
+    durationDays: 365,
+    monthlyScanLimit: 500,
+    features: 'AI Smart Review Generator, QR Standee Studio, Private Negative Feedback Gating, WhatsApp & Email Alerts, Custom Discount Offers',
+    badge: '',
+    isActive: true,
+  });
+  const [planSaving, setPlanSaving] = useState(false);
+  const [planError, setPlanError] = useState('');
+
+  const fetchPlans = async () => {
+    try {
+      setPlansLoading(true);
+      const res = await fetch('/api/super-admin/plans');
+      const data = await res.json();
+      if (data.plans) {
+        setPlans(data.plans);
+      }
+    } catch (err) {
+      console.error('Error loading plans:', err);
+    } finally {
+      setPlansLoading(false);
+    }
+  };
+
+  const handleOpenCreatePlan = () => {
+    setEditingPlan(null);
+    setPlanForm({
+      name: '',
+      price: '₹999/mo',
+      durationDays: 365,
+      monthlyScanLimit: 500,
+      features: 'AI Smart Review Generator, QR Standee Studio, Private Negative Feedback Gating, WhatsApp & Email Alerts, Custom Discount Offers',
+      badge: '',
+      isActive: true,
+    });
+    setPlanError('');
+    setShowPlanModal(true);
+  };
+
+  const handleOpenEditPlan = (p: any) => {
+    setEditingPlan(p);
+    setPlanForm({
+      name: p.name,
+      price: p.price,
+      durationDays: p.durationDays,
+      monthlyScanLimit: p.monthlyScanLimit,
+      features: p.features,
+      badge: p.badge || '',
+      isActive: p.isActive,
+    });
+    setPlanError('');
+    setShowPlanModal(true);
+  };
+
+  const handleSavePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlanSaving(true);
+    setPlanError('');
+
+    try {
+      const method = editingPlan ? 'PATCH' : 'POST';
+      const body = editingPlan
+        ? { id: editingPlan.id, ...planForm }
+        : planForm;
+
+      const res = await fetch('/api/super-admin/plans', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save plan');
+      }
+
+      setActionSuccess(editingPlan ? 'Plan updated successfully!' : 'New plan created successfully!');
+      setShowPlanModal(false);
+      fetchPlans();
+      setTimeout(() => setActionSuccess(''), 4000);
+    } catch (err: any) {
+      setPlanError(err.message);
+    } finally {
+      setPlanSaving(false);
+    }
+  };
+
+  const handleDeletePlan = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the plan "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/super-admin/plans?id=${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete plan');
+      }
+      setActionSuccess(`Plan "${name}" deleted successfully!`);
+      fetchPlans();
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   // AI Engine Configuration State
   const [aiConfig, setAiConfig] = useState({
@@ -170,6 +287,7 @@ export default function SuperAdminPage() {
       const clientsData = await clientsRes.json();
       setClients(clientsData.clients || []);
       setMetrics(clientsData.metrics || null);
+      fetchPlans();
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -523,10 +641,10 @@ export default function SuperAdminPage() {
         </div>
 
         {/* Top Navigation Tabs */}
-        <div className="flex items-center gap-3 my-6 border-b border-slate-200 pb-3">
+        <div className="flex items-center gap-3 my-6 border-b border-slate-200 pb-3 overflow-x-auto">
           <button
             onClick={() => setActiveTab('CLIENTS')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
               activeTab === 'CLIENTS'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                 : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
@@ -538,10 +656,25 @@ export default function SuperAdminPage() {
 
           <button
             onClick={() => {
+              setActiveTab('PLANS');
+              fetchPlans();
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+              activeTab === 'PLANS'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-indigo-500" />
+            <span>Plans & Pricing Packages ({plans.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
               setActiveTab('AI_CONFIG');
               fetchAiConfig();
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
               activeTab === 'AI_CONFIG'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                 : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
@@ -808,7 +941,140 @@ export default function SuperAdminPage() {
       </div>
     )}
 
-    {/* TAB 2: GLOBAL AI ENGINE & API CONFIGURATION */}
+    {/* TAB 2: PLANS & PRICING PACKAGES MANAGEMENT */}
+    {activeTab === 'PLANS' && (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Plans Header Banner */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Subscription Plans & Pricing Tiers
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Create, customize and manage subscription plans. Set features, scan limits, durations, and pricing.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenCreatePlan}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition hover:scale-[1.02] shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Plan</span>
+          </button>
+        </div>
+
+        {/* Plans Cards Grid */}
+        {plansLoading ? (
+          <div className="py-16 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
+            <RefreshCw className="w-5 h-5 animate-spin text-blue-600" /> Loading Plans...
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center">
+            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-slate-800">No Plans Configured Yet</h3>
+            <p className="text-xs text-slate-500 mt-1 mb-4">Click below to add your first subscription package</p>
+            <button
+              onClick={handleOpenCreatePlan}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-blue-500 transition"
+            >
+              + Add Plan
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {plans.map((p: any) => {
+              const featuresList = p.features
+                ? p.features.split(',').map((f: string) => f.trim()).filter(Boolean)
+                : [];
+
+              return (
+                <div
+                  key={p.id}
+                  className={`bg-white rounded-3xl border transition-all duration-300 flex flex-col justify-between relative p-6 shadow-sm hover:shadow-xl ${
+                    p.badge ? 'border-indigo-400 ring-2 ring-indigo-500/20' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {p.badge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
+                      {p.badge}
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-lg font-black text-slate-900">{p.name}</h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        p.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {p.isActive ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+
+                    <div className="mb-4">
+                      <span className="text-2xl font-black text-slate-900 tracking-tight">{p.price}</span>
+                      <span className="text-xs text-slate-400 font-medium ml-1">/ {p.durationDays} days</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 mb-4 text-xs">
+                      <div className="flex items-center justify-between text-slate-700">
+                        <span className="font-medium text-slate-500">Scan Limit:</span>
+                        <span className="font-extrabold">
+                          {p.monthlyScanLimit === -1 ? 'Unlimited' : `${p.monthlyScanLimit} / mo`}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-700">
+                        <span className="font-medium text-slate-500">Validity:</span>
+                        <span className="font-extrabold">{p.durationDays} Days</span>
+                      </div>
+                    </div>
+
+                    {/* Features List */}
+                    <div className="space-y-2 mb-6">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Included Perks:</p>
+                      {featuresList.map((f: string, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                          <span className="leading-tight">{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditPlan(p)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5"
+                    >
+                      <Edit className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Edit Plan</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePlan(p.id, p.name)}
+                      title="Delete Plan"
+                      className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* TAB 3: GLOBAL AI ENGINE & API CONFIGURATION */}
     {activeTab === 'AI_CONFIG' && (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
         {/* Section Header */}
@@ -1222,18 +1488,34 @@ export default function SuperAdminPage() {
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
                   />
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {['Starter Plan', 'Pro Plan', 'Enterprise Plan', 'VIP Unlimited'].map((preset) => (
+                    {(plans.length > 0
+                      ? plans
+                      : [
+                          { name: 'Starter Plan', price: '₹499/mo', durationDays: 365, monthlyScanLimit: 100 },
+                          { name: 'Pro Plan', price: '₹999/mo', durationDays: 365, monthlyScanLimit: 500 },
+                          { name: 'Enterprise Plan', price: '₹2,999/yr', durationDays: 365, monthlyScanLimit: 5000 },
+                          { name: 'VIP Unlimited', price: '₹4,999/yr', durationDays: 365, monthlyScanLimit: -1 },
+                        ]
+                    ).map((p: any, idx: number) => (
                       <button
-                        key={preset}
+                        key={p.id || idx}
                         type="button"
-                        onClick={() => setFormData({ ...formData, planName: preset })}
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            planName: p.name,
+                            planPrice: p.price,
+                            durationDays: p.durationDays || 365,
+                            monthlyScanLimit: p.monthlyScanLimit ?? 500,
+                          })
+                        }
                         className={`px-2 py-0.5 text-[10px] font-bold rounded-lg border transition ${
-                          formData.planName === preset
+                          formData.planName === p.name
                             ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                       >
-                        {preset}
+                        {p.name}
                       </button>
                     ))}
                   </div>
@@ -1492,18 +1774,33 @@ export default function SuperAdminPage() {
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
                   />
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {['Starter Plan', 'Pro Plan', 'Enterprise Plan', 'VIP Unlimited'].map((preset) => (
+                    {(plans.length > 0
+                      ? plans
+                      : [
+                          { name: 'Starter Plan', price: '₹499/mo', monthlyScanLimit: 100 },
+                          { name: 'Pro Plan', price: '₹999/mo', monthlyScanLimit: 500 },
+                          { name: 'Enterprise Plan', price: '₹2,999/yr', monthlyScanLimit: 5000 },
+                          { name: 'VIP Unlimited', price: '₹4,999/yr', monthlyScanLimit: -1 },
+                        ]
+                    ).map((p: any, idx: number) => (
                       <button
-                        key={preset}
+                        key={p.id || idx}
                         type="button"
-                        onClick={() => setSelectedClient({ ...selectedClient, planName: preset })}
+                        onClick={() =>
+                          setSelectedClient({
+                            ...selectedClient,
+                            planName: p.name,
+                            planPrice: p.price,
+                            monthlyScanLimit: p.monthlyScanLimit ?? 500,
+                          })
+                        }
                         className={`px-2 py-0.5 text-[10px] font-bold rounded-lg border transition ${
-                          selectedClient.planName === preset
+                          selectedClient.planName === p.name
                             ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                       >
-                        {preset}
+                        {p.name}
                       </button>
                     ))}
                   </div>
@@ -1818,6 +2115,176 @@ export default function SuperAdminPage() {
                     <>
                       <KeyRound className="w-3.5 h-3.5" />
                       <span>Update Admin Password</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE & EDIT PLAN MODAL */}
+      {showPlanModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    {editingPlan ? `Edit Plan: ${editingPlan.name}` : 'Create New Subscription Plan'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Define pricing, duration, QR limits, and feature perks
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPlanModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {planError && (
+              <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span className="font-semibold">{planError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePlan} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Plan Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Starter Plan, Pro Plan, Enterprise VIP"
+                  value={planForm.name}
+                  onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Price / Billing Label *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ₹999/mo, ₹4,999/yr, Free"
+                    value={planForm.price}
+                    onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Validity Duration (Days) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 365"
+                    value={planForm.durationDays}
+                    onChange={(e) => setPlanForm({ ...planForm, durationDays: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Monthly QR Scan Limit
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">-1 for Unlimited</span>
+                  </div>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 500 or -1"
+                    value={planForm.monthlyScanLimit}
+                    onChange={(e) => setPlanForm({ ...planForm, monthlyScanLimit: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Badge Label (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Most Popular, Best Value"
+                    value={planForm.badge}
+                    onChange={(e) => setPlanForm({ ...planForm, badge: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Included Features & Perks (Comma Separated)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="AI Smart Review Generator, QR Standee Studio, Private Negative Feedback Gating, WhatsApp & Email Alerts, Custom Discount Offers"
+                  value={planForm.features}
+                  onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Separate each feature with a comma (,). Each item will show with a checkmark on the plan card.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Active & Available for Onboarding</p>
+                  <p className="text-[10px] text-slate-500">Allow assigning this plan to new client accounts</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={planForm.isActive}
+                  onChange={(e) => setPlanForm({ ...planForm, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPlanModal(false)}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={planSaving}
+                  className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {planSaving ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Plan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{editingPlan ? 'Update Plan' : 'Create Plan'}</span>
                     </>
                   )}
                 </button>

@@ -20,6 +20,11 @@ import {
   Sparkles,
   TrendingUp,
   AlertCircle,
+  Receipt,
+  CreditCard,
+  Calendar,
+  Zap,
+  ShieldCheck,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -29,6 +34,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [copied, setCopied] = useState(false);
 
@@ -49,10 +55,19 @@ export default function DashboardPage() {
       }
       setUser(meData.user);
 
-      const feedbackRes = await fetch(`/api/feedback?status=${activeFilter}`);
+      const [feedbackRes, subRes] = await Promise.all([
+        fetch(`/api/feedback?status=${activeFilter}`),
+        fetch('/api/business/subscription'),
+      ]);
+
       const feedbackData = await feedbackRes.json();
       setFeedbacks(feedbackData.feedbacks || []);
       setMetrics(feedbackData.metrics || null);
+
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        setSubscriptionData(subData);
+      }
     } catch (err) {
       console.error('Error loading dashboard:', err);
     } finally {
@@ -218,66 +233,134 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Monthly QR Scan Usage Meter Card */}
-        {metrics && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 mb-8 animate-fadeIn">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <QrCode className="w-5 h-5" />
+        {/* Subscription Plan, Limits & Expiry Details Card */}
+        {subscriptionData && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mb-8 animate-fadeIn">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20">
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    Monthly QR Scan Quota & Usage Meter
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Current calendar month usage. Automatically resets on the 1st of every month.
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black text-slate-900">
+                      {subscriptionData.plan?.name || 'Active Plan'}
+                    </h3>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                      {subscriptionData.plan?.isExpired ? 'Expired' : 'Active Subscription'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Price: <strong>{subscriptionData.plan?.price || 'Included'}</strong> • Reputation Protection Active
                   </p>
                 </div>
               </div>
 
+              {/* Expiry Badge */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-slate-900">
-                  {metrics.isUnlimited
-                    ? `${metrics.scansThisMonth} Scans (Unlimited Plan)`
-                    : `${metrics.scansThisMonth} / ${metrics.monthlyScanLimit} Scans (${metrics.usagePercent}%)`}
-                </span>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase">
-                  {metrics.planName}
-                </span>
+                <div className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-left">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plan Expiry Date</p>
+                  <p className="text-xs font-black text-slate-900 flex items-center gap-1 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                    {subscriptionData.plan?.expiresAt ? formatDate(subscriptionData.plan.expiresAt) : 'Lifetime Validity'}
+                    {subscriptionData.plan?.daysRemaining !== null && (
+                      <span className={`ml-1 text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                        subscriptionData.plan.daysRemaining <= 15
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        ({subscriptionData.plan.daysRemaining} days left)
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            {!metrics.isUnlimited && (
-              <div className="space-y-1.5">
-                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+            {/* QR Scans Usage Quota Meter */}
+            <div className="py-4 border-b border-slate-100">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-blue-600" />
+                  Monthly QR Scan Quota:
+                </span>
+                <span className="font-extrabold text-slate-900">
+                  {subscriptionData.plan?.monthlyScanLimit === -1
+                    ? `${subscriptionData.plan?.scansThisMonth} Scans (Unlimited Plan)`
+                    : `${subscriptionData.plan?.scansThisMonth} / ${subscriptionData.plan?.monthlyScanLimit} Scans (${Math.round((subscriptionData.plan?.scansThisMonth / subscriptionData.plan?.monthlyScanLimit) * 100)}%)`}
+                </span>
+              </div>
+
+              {subscriptionData.plan?.monthlyScanLimit !== -1 && (
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      metrics.usagePercent >= 90
+                      (subscriptionData.plan?.scansThisMonth / subscriptionData.plan?.monthlyScanLimit) >= 0.9
                         ? 'bg-rose-500'
-                        : metrics.usagePercent >= 70
+                        : (subscriptionData.plan?.scansThisMonth / subscriptionData.plan?.monthlyScanLimit) >= 0.7
                         ? 'bg-amber-500'
                         : 'bg-emerald-500'
                     }`}
-                    style={{ width: `${Math.max(2, metrics.usagePercent)}%` }}
+                    style={{
+                      width: `${Math.min(100, Math.max(2, Math.round((subscriptionData.plan?.scansThisMonth / subscriptionData.plan?.monthlyScanLimit) * 100)))}%`,
+                    }}
                   />
                 </div>
+              )}
+            </div>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span>
-                    {metrics.monthlyScanLimit - metrics.scansThisMonth > 0
-                      ? `${metrics.monthlyScanLimit - metrics.scansThisMonth} scans remaining this month`
-                      : '⚠️ Monthly scan quota reached!'}
-                  </span>
-                  {metrics.usagePercent >= 80 && (
-                    <span className="text-amber-600 font-bold">
-                      Need more scans? Contact admin to upgrade.
-                    </span>
-                  )}
-                </div>
+            {/* Recent Billing / Transactions History */}
+            <div className="pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Receipt className="w-4 h-4 text-indigo-600" />
+                  Recent Billing & Subscription Transactions:
+                </h4>
               </div>
-            )}
+
+              {subscriptionData.transactions && subscriptionData.transactions.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/50">
+                        <th className="py-2.5 px-3 rounded-l-xl">Date</th>
+                        <th className="py-2.5 px-3">Plan / Description</th>
+                        <th className="py-2.5 px-3">Amount</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3 rounded-r-xl text-right">Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {subscriptionData.transactions.map((tx: any) => (
+                        <tr key={tx.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-2.5 px-3 font-medium text-slate-600">
+                            {formatDate(tx.createdAt)}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-slate-800">
+                            {tx.planName}
+                            {tx.notes && <span className="block text-[10px] text-slate-400 font-normal">{tx.notes}</span>}
+                          </td>
+                          <td className="py-2.5 px-3 font-black text-slate-900">
+                            {tx.amount}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {tx.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-500 font-semibold">
+                            {tx.paymentMethod || 'Direct Admin'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No transactions recorded yet.</p>
+              )}
+            </div>
           </div>
         )}
 
