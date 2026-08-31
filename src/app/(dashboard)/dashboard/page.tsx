@@ -128,6 +128,44 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* PLAN EXPIRY LOCK WARNING */}
+        {(() => {
+          const isExpired = user.business?.planExpiresAt
+            ? new Date(user.business.planExpiresAt) < new Date()
+            : false;
+          const isPaused = user.business?.isActive === false;
+
+          if (isExpired || isPaused) {
+            return (
+              <div className="mb-8 p-6 rounded-3xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-xl shadow-rose-600/20 border border-rose-400/40 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black tracking-tight">
+                        {isExpired ? '⚠️ Subscription Plan Expired' : '⚠️ Account Paused / Inactive'}
+                      </h3>
+                      <p className="text-xs text-rose-100 mt-0.5">
+                        {isExpired
+                          ? `Your plan (${user.business?.planName || 'Plan'}) expired on ${formatDate(user.business.planExpiresAt)}. Public review redirects & QR scans are currently locked.`
+                          : 'Your business review portal has been paused by the administrator.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="sm:text-right">
+                    <span className="inline-block px-3.5 py-1.5 rounded-xl bg-white text-rose-700 font-extrabold text-xs shadow-md">
+                      Contact Admin to Renew
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         {/* Top Banner with Review Link */}
         <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-blue-600/15 mb-8 relative overflow-hidden">
           <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none" />

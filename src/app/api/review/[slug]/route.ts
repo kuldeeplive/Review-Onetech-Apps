@@ -33,6 +33,7 @@ export async function GET(
         positiveMessage: true,
         negativeMessage: true,
         monthlyScanLimit: true,
+        planExpiresAt: true,
       },
     });
 
@@ -40,11 +41,15 @@ export async function GET(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    if (!business.isActive) {
+    const isExpired = business.planExpiresAt ? new Date(business.planExpiresAt) < new Date() : false;
+    if (!business.isActive || isExpired) {
       return NextResponse.json(
         {
-          error: 'This business review portal is currently inactive or under maintenance.',
+          error: isExpired
+            ? 'This business subscription plan has expired. Please contact the administrator to renew.'
+            : 'This business review portal is currently inactive or under maintenance.',
           isActive: false,
+          isExpired,
         },
         { status: 403 }
       );
