@@ -19,6 +19,9 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
 
+ARG BUILD_ID=2026-08-31-v2
+RUN echo "Build ID: $BUILD_ID"
+
 # Generate Prisma Client & Build Next.js
 RUN npx prisma generate
 RUN npm run build

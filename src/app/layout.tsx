@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'RepuBoost - Smart Google Review & Reputation Manager',
-  description: 'Boost 5-star Google Reviews and filter negative feedback privately with smart QR codes.',
+  title: 'OneTech Review Management Portal',
+  description: 'Smart Google Review Gating and Private Feedback Management System',
 };
 
 export default function RootLayout({
