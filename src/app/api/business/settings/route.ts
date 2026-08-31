@@ -62,6 +62,10 @@ export async function PUT(req: Request) {
     if (body.category !== undefined) updateData.category = body.category;
     if (body.bio !== undefined) updateData.bio = body.bio;
     if (body.services !== undefined) updateData.services = body.services;
+    if (body.enableServices !== undefined) updateData.enableServices = Boolean(body.enableServices);
+    if (body.enablePositiveTags !== undefined) updateData.enablePositiveTags = Boolean(body.enablePositiveTags);
+    if (body.enableLanguageSelection !== undefined) updateData.enableLanguageSelection = Boolean(body.enableLanguageSelection);
+    if (body.selectedLanguages !== undefined) updateData.selectedLanguages = body.selectedLanguages;
     if (googleReviewUrl !== undefined) updateData.googleReviewUrl = googleReviewUrl;
     if (minPositiveRating !== undefined) updateData.minPositiveRating = Number(minPositiveRating);
     if (collectFeedbackOnLowRating !== undefined) updateData.collectFeedbackOnLowRating = Boolean(collectFeedbackOnLowRating);

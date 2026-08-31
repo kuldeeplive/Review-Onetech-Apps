@@ -47,6 +47,10 @@ export default function SettingsPage() {
     issueCategories: 'Service Speed, Product Quality, Staff Behavior, Cleanliness & Hygiene, Pricing / Billing, Other Issue',
     enableDiscountOffer: true,
     enableAiReview: true,
+    enableServices: true,
+    enablePositiveTags: true,
+    enableLanguageSelection: true,
+    selectedLanguages: 'English, Hinglish, Hindi, Gujarati, Marathi, Punjabi, Bengali, Tamil, Telugu, Arabic, Spanish',
     positiveTags: 'Fast & Friendly, Top Quality, Great Hospitality, Value for Money, Highly Recommended',
     primaryColor: '#2563eb',
     notificationPhone: '',
@@ -136,6 +140,10 @@ export default function SettingsPage() {
           issueCategories: data.business.issueCategories || 'Service Speed, Product Quality, Staff Behavior, Cleanliness & Hygiene, Pricing / Billing, Other Issue',
           enableDiscountOffer: data.business.enableDiscountOffer ?? true,
           enableAiReview: data.business.enableAiReview ?? true,
+          enableServices: data.business.enableServices ?? true,
+          enablePositiveTags: data.business.enablePositiveTags ?? true,
+          enableLanguageSelection: data.business.enableLanguageSelection ?? true,
+          selectedLanguages: data.business.selectedLanguages || 'English, Hinglish, Hindi, Gujarati, Marathi, Punjabi, Bengali, Tamil, Telugu, Arabic, Spanish',
           positiveTags: data.business.positiveTags || 'Fast & Friendly, Top Quality, Great Hospitality, Value for Money, Highly Recommended',
           primaryColor: data.business.primaryColor || '#2563eb',
           notificationPhone: data.business.notificationPhone || '',
@@ -382,33 +390,171 @@ export default function SettingsPage() {
             </div>
 
             {/* Toggle 3: Enable AI Review Assistant */}
-            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    AI Review Assistant (1-Click Suggestions on High Ratings)
-                  </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${formData.enableAiReview ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
-                    {formData.enableAiReview ? 'Enabled' : 'Disabled'}
-                  </span>
+            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      AI Review Assistant (1-Click Suggestions on High Ratings)
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${formData.enableAiReview ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                      {formData.enableAiReview ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formData.enableAiReview
+                      ? 'Customers who give 4 or 5 stars will see smart customized AI review generation options.'
+                      : 'AI Review box is hidden. 4/5 star rating directly displays the thank you note and opens Google Reviews without prompts.'}
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  {formData.enableAiReview
-                    ? 'Customers who give 4 or 5 stars will see ready-to-copy AI praise tags before being redirected to Google Maps.'
-                    : 'AI Review box is hidden. 4/5 star rating directly displays the thank you note and opens Google Reviews without prompts.'}
-                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, enableAiReview: !formData.enableAiReview })}
+                  className={`w-14 h-8 flex items-center rounded-full p-1 transition duration-300 shrink-0 ${
+                    formData.enableAiReview ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'
+                  }`}
+                >
+                  <div className="bg-white w-6 h-6 rounded-full shadow-md transform transition" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, enableAiReview: !formData.enableAiReview })}
-                className={`w-14 h-8 flex items-center rounded-full p-1 transition duration-300 shrink-0 ${
-                  formData.enableAiReview ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'
-                }`}
-              >
-                <div className="bg-white w-6 h-6 rounded-full shadow-md transform transition" />
-              </button>
+              {/* Granular Step Toggles (Visible when AI Assistant is Enabled) */}
+              {formData.enableAiReview && (
+                <div className="pt-3 border-t border-slate-200/80 space-y-3 animate-fadeIn">
+                  <p className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                    🎯 Customize Which Options Customers See On Review Page:
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Sub-toggle 1: Services Chips */}
+                    <div
+                      onClick={() => setFormData({ ...formData, enableServices: !formData.enableServices })}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex items-center justify-between ${
+                        formData.enableServices
+                          ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div>
+                        <span className="block font-extrabold text-xs text-slate-900">
+                          📦 Services / Products Chips
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {formData.enableServices ? 'Visible to Customer' : 'Hidden from Customer'}
+                        </span>
+                      </div>
+                      <span className={`text-xs font-bold ${formData.enableServices ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {formData.enableServices ? '✓ ON' : '✕ OFF'}
+                      </span>
+                    </div>
+
+                    {/* Sub-toggle 2: Praise Tags */}
+                    <div
+                      onClick={() => setFormData({ ...formData, enablePositiveTags: !formData.enablePositiveTags })}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex items-center justify-between ${
+                        formData.enablePositiveTags
+                          ? 'border-amber-500 bg-amber-50/50 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div>
+                        <span className="block font-extrabold text-xs text-slate-900">
+                          ⭐ Praise / 'What did you like' Chips
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {formData.enablePositiveTags ? 'Visible to Customer' : 'Hidden from Customer'}
+                        </span>
+                      </div>
+                      <span className={`text-xs font-bold ${formData.enablePositiveTags ? 'text-amber-600' : 'text-slate-400'}`}>
+                        {formData.enablePositiveTags ? '✓ ON' : '✕ OFF'}
+                      </span>
+                    </div>
+
+                    {/* Sub-toggle 3: Multi-Language */}
+                    <div
+                      onClick={() => setFormData({ ...formData, enableLanguageSelection: !formData.enableLanguageSelection })}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex items-center justify-between ${
+                        formData.enableLanguageSelection
+                          ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div>
+                        <span className="block font-extrabold text-xs text-slate-900">
+                          🌐 Multi-Language Selector
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {formData.enableLanguageSelection ? 'Visible to Customer' : 'Hidden (English Only)'}
+                        </span>
+                      </div>
+                      <span className={`text-xs font-bold ${formData.enableLanguageSelection ? 'text-indigo-600' : 'text-slate-400'}`}>
+                        {formData.enableLanguageSelection ? '✓ ON' : '✕ OFF'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Language Whitelist Selector (If Language Selection is enabled) */}
+                  {formData.enableLanguageSelection && (
+                    <div className="p-3.5 bg-white rounded-xl border border-indigo-100 space-y-2 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-800">
+                          🌐 Select Allowed Languages (Click to toggle on/off for customers):
+                        </label>
+                        <span className="text-[10px] text-indigo-600 font-bold">
+                          {formData.selectedLanguages.split(',').filter(Boolean).length} Languages Active
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { id: 'English', label: '🇬🇧 English' },
+                          { id: 'Hinglish', label: '🇮🇳 Hinglish' },
+                          { id: 'Hindi', label: '🇮🇳 हिंदी' },
+                          { id: 'Gujarati', label: '🇮🇳 ગુજરાતી' },
+                          { id: 'Marathi', label: '🇮🇳 मराठी' },
+                          { id: 'Punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
+                          { id: 'Bengali', label: '🇮🇳 বাংলা' },
+                          { id: 'Tamil', label: '🇮🇳 தமிழ்' },
+                          { id: 'Telugu', label: '🇮🇳 తెలుగు' },
+                          { id: 'Arabic', label: '🇦🇪 العربية' },
+                          { id: 'Spanish', label: '🇪🇸 Español' },
+                        ].map((lang) => {
+                          const activeList = formData.selectedLanguages.split(',').map((s) => s.trim());
+                          const isChecked = activeList.includes(lang.id);
+                          return (
+                            <button
+                              key={lang.id}
+                              type="button"
+                              onClick={() => {
+                                let updated: string[];
+                                if (isChecked) {
+                                  if (activeList.length === 1) {
+                                    alert('At least one language must remain selected.');
+                                    return;
+                                  }
+                                  updated = activeList.filter((l) => l !== lang.id);
+                                } else {
+                                  updated = [...activeList, lang.id];
+                                }
+                                setFormData({ ...formData, selectedLanguages: updated.join(', ') });
+                              }}
+                              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
+                                isChecked
+                                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                  : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'
+                              }`}
+                            >
+                              <span>{isChecked ? '✓' : '+'}</span>
+                              <span>{lang.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

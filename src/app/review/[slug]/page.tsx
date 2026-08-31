@@ -375,13 +375,13 @@ export default function PublicReviewPage() {
               {/* AI Review Assistant Generator (Rendered ONLY if enabled by client) */}
               {business?.enableAiReview !== false && (
                 <div className="space-y-4">
-                  {/* Step 1: Select Services (if available) */}
-                  {servicesList.length > 0 && (
+                  {/* Step 1: Select Services (Rendered ONLY if enabled by client) */}
+                  {business?.enableServices !== false && servicesList.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                           <span>📦</span>
-                          <span>1. Select Service / Product Used</span>
+                          <span>Select Service / Product Used</span>
                         </label>
                         <span className="text-[10px] text-blue-600 font-bold">Multi-select</span>
                       </div>
@@ -408,79 +408,89 @@ export default function PublicReviewPage() {
                     </div>
                   )}
 
-                  {/* Step 2: Select Praise Aspects */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <span>⭐</span>
-                        <span>2. What did you like best?</span>
-                      </label>
-                      <span className="text-[10px] text-amber-600 font-bold">Multi-select</span>
+                  {/* Step 2: Select Praise Aspects (Rendered ONLY if enabled by client) */}
+                  {business?.enablePositiveTags !== false && positiveTagsList.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <span>⭐</span>
+                          <span>What did you like best?</span>
+                        </label>
+                        <span className="text-[10px] text-amber-600 font-bold">Multi-select</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {positiveTagsList.map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => toggleTag(tag)}
+                              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-amber-500 border-amber-500 text-white shadow-sm scale-[1.02]'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                              }`}
+                            >
+                              <span>{isSelected ? '✓' : '+'}</span>
+                              <span>{tag}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {positiveTagsList.map((tag) => {
-                        const isSelected = selectedTags.includes(tag);
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleTag(tag)}
-                            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
-                              isSelected
-                                ? 'bg-amber-500 border-amber-500 text-white shadow-sm scale-[1.02]'
-                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                            }`}
-                          >
-                            <span>{isSelected ? '✓' : '+'}</span>
-                            <span>{tag}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Step 3: Select Review Language (भाषा) */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <span>🌐</span>
-                        <span>3. Select Review Language (भाषा)</span>
-                      </label>
-                      <span className="text-[10px] text-indigo-600 font-bold">{selectedLanguage}</span>
+                  {/* Step 3: Select Review Language (Rendered ONLY if enabled by client) */}
+                  {business?.enableLanguageSelection !== false && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <span>🌐</span>
+                          <span>Select Review Language (भाषा)</span>
+                        </label>
+                        <span className="text-[10px] text-indigo-600 font-bold">{selectedLanguage}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { id: 'English', label: '🇬🇧 English' },
+                          { id: 'Hinglish', label: '🇮🇳 Hinglish' },
+                          { id: 'Hindi', label: '🇮🇳 हिंदी' },
+                          { id: 'Gujarati', label: '🇮🇳 ગુજરાતી' },
+                          { id: 'Marathi', label: '🇮🇳 मराठी' },
+                          { id: 'Punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
+                          { id: 'Bengali', label: '🇮🇳 বাংলা' },
+                          { id: 'Tamil', label: '🇮🇳 தமிழ்' },
+                          { id: 'Telugu', label: '🇮🇳 తెలుగు' },
+                          { id: 'Arabic', label: '🇦🇪 العربية' },
+                          { id: 'Spanish', label: '🇪🇸 Español' },
+                        ]
+                          .filter((lang) => {
+                            if (!business?.selectedLanguages) return true;
+                            const allowed = business.selectedLanguages.split(',').map((s: string) => s.trim());
+                            return allowed.includes(lang.id);
+                          })
+                          .map((lang) => {
+                            const isSelected = selectedLanguage === lang.id;
+                            return (
+                              <button
+                                key={lang.id}
+                                type="button"
+                                onClick={() => setSelectedLanguage(lang.id)}
+                                className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
+                                  isSelected
+                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm scale-[1.02]'
+                                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                                }`}
+                              >
+                                <span>{isSelected ? '✓ ' : ''}</span>
+                                <span>{lang.label}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { id: 'English', label: '🇬🇧 English' },
-                        { id: 'Hinglish', label: '🇮🇳 Hinglish' },
-                        { id: 'Hindi', label: '🇮🇳 हिंदी' },
-                        { id: 'Gujarati', label: '🇮🇳 ગુજરાતી' },
-                        { id: 'Marathi', label: '🇮🇳 मराठी' },
-                        { id: 'Punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
-                        { id: 'Bengali', label: '🇮🇳 বাংলা' },
-                        { id: 'Tamil', label: '🇮🇳 தமிழ்' },
-                        { id: 'Telugu', label: '🇮🇳 తెలుగు' },
-                        { id: 'Arabic', label: '🇦🇪 العربية' },
-                        { id: 'Spanish', label: '🇪🇸 Español' },
-                      ].map((lang) => {
-                        const isSelected = selectedLanguage === lang.id;
-                        return (
-                          <button
-                            key={lang.id}
-                            type="button"
-                            onClick={() => setSelectedLanguage(lang.id)}
-                            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition flex items-center gap-1 ${
-                              isSelected
-                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm scale-[1.02]'
-                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                            }`}
-                          >
-                            <span>{isSelected ? '✓ ' : ''}</span>
-                            <span>{lang.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  )}
 
                   {/* Big Dedicated "Generate AI Review" Button */}
                   <button

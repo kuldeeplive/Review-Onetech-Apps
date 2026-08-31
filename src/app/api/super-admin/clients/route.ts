@@ -87,6 +87,10 @@ export async function GET() {
         issueCategories: b.issueCategories,
         enableDiscountOffer: b.enableDiscountOffer,
         enableAiReview: b.enableAiReview,
+        enableServices: b.enableServices,
+        enablePositiveTags: b.enablePositiveTags,
+        enableLanguageSelection: b.enableLanguageSelection,
+        selectedLanguages: b.selectedLanguages,
         positiveTags: b.positiveTags,
         discountOfferTitle: b.discountOfferTitle,
         discountOfferCode: b.discountOfferCode,
@@ -221,6 +225,10 @@ export async function POST(req: Request) {
           issueCategories: issueCategories,
           enableDiscountOffer: Boolean(enableDiscountOffer),
           enableAiReview: Boolean(enableAiReview),
+          enableServices: body.enableServices !== undefined ? Boolean(body.enableServices) : true,
+          enablePositiveTags: body.enablePositiveTags !== undefined ? Boolean(body.enablePositiveTags) : true,
+          enableLanguageSelection: body.enableLanguageSelection !== undefined ? Boolean(body.enableLanguageSelection) : true,
+          selectedLanguages: body.selectedLanguages || 'English, Hinglish, Hindi, Gujarati, Marathi, Punjabi, Bengali, Tamil, Telugu, Arabic, Spanish',
           positiveTags: positiveTags,
           standeeTemplate: standeeTemplate || 'modern_gradient',
           standeeTagline: standeeTagline || 'Loved your visit? Share your feedback!',
@@ -374,6 +382,10 @@ export async function PATCH(req: Request) {
     if (issueCategories !== undefined) updateData.issueCategories = issueCategories;
     if (enableDiscountOffer !== undefined) updateData.enableDiscountOffer = Boolean(enableDiscountOffer);
     if (enableAiReview !== undefined) updateData.enableAiReview = Boolean(enableAiReview);
+    if (body.enableServices !== undefined) updateData.enableServices = Boolean(body.enableServices);
+    if (body.enablePositiveTags !== undefined) updateData.enablePositiveTags = Boolean(body.enablePositiveTags);
+    if (body.enableLanguageSelection !== undefined) updateData.enableLanguageSelection = Boolean(body.enableLanguageSelection);
+    if (body.selectedLanguages !== undefined) updateData.selectedLanguages = body.selectedLanguages;
     if (positiveTags !== undefined) updateData.positiveTags = positiveTags;
     if (discountOfferTitle !== undefined) updateData.discountOfferTitle = discountOfferTitle;
     if (discountOfferCode !== undefined) updateData.discountOfferCode = discountOfferCode;

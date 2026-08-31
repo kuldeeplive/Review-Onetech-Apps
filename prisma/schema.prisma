@@ -46,6 +46,10 @@ model Business {
   
   // AI Review Assistant & Dynamic Praise Tags
   enableAiReview             Boolean         @default(true) // Client toggle: show AI review suggestions on high ratings
+  enableServices             Boolean         @default(true) // Client toggle: show services/products chips to customers
+  enablePositiveTags         Boolean         @default(true) // Client toggle: show praise/what did you like best chips
+  enableLanguageSelection    Boolean         @default(true) // Client toggle: show language selector chips to customers
+  selectedLanguages          String?         @default("English, Hinglish, Hindi, Gujarati, Marathi, Punjabi, Bengali, Tamil, Telugu, Arabic, Spanish") // Whitelisted languages
   positiveTags               String?         @default("Top Quality, Fast Delivery, Great Support, Professional Team, Highly Recommended")
   
   // Apology Voucher settings

@@ -538,6 +538,10 @@ export default function SuperAdminPage() {
           collectFeedbackOnLowRating: Boolean(selectedClient.collectFeedbackOnLowRating),
           enableDiscountOffer: Boolean(selectedClient.enableDiscountOffer),
           enableAiReview: Boolean(selectedClient.enableAiReview),
+          enableServices: Boolean(selectedClient.enableServices),
+          enablePositiveTags: Boolean(selectedClient.enablePositiveTags),
+          enableLanguageSelection: Boolean(selectedClient.enableLanguageSelection),
+          selectedLanguages: selectedClient.selectedLanguages,
           discountOfferTitle: selectedClient.discountOfferTitle,
           discountOfferCode: selectedClient.discountOfferCode,
           discountOfferText: selectedClient.discountOfferText,
@@ -2096,6 +2100,44 @@ export default function SuperAdminPage() {
                   />
                 </div>
               </div>
+
+              {/* Granular AI Step Toggles */}
+              {selectedClient.enableAiReview && (
+                <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-2 animate-fadeIn">
+                  <p className="text-[10px] font-bold text-indigo-900 uppercase">
+                    Client Review Screen Step Visibility:
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer bg-white p-2 rounded-lg border border-indigo-100">
+                      <input
+                        type="checkbox"
+                        checked={selectedClient.enableServices ?? true}
+                        onChange={(e) => setSelectedClient({ ...selectedClient, enableServices: e.target.checked })}
+                        className="w-3.5 h-3.5 rounded text-blue-600 cursor-pointer"
+                      />
+                      <span>Services</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer bg-white p-2 rounded-lg border border-indigo-100">
+                      <input
+                        type="checkbox"
+                        checked={selectedClient.enablePositiveTags ?? true}
+                        onChange={(e) => setSelectedClient({ ...selectedClient, enablePositiveTags: e.target.checked })}
+                        className="w-3.5 h-3.5 rounded text-amber-500 cursor-pointer"
+                      />
+                      <span>Praise Tags</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer bg-white p-2 rounded-lg border border-indigo-100">
+                      <input
+                        type="checkbox"
+                        checked={selectedClient.enableLanguageSelection ?? true}
+                        onChange={(e) => setSelectedClient({ ...selectedClient, enableLanguageSelection: e.target.checked })}
+                        className="w-3.5 h-3.5 rounded text-indigo-600 cursor-pointer"
+                      />
+                      <span>Languages</span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {/* Apology Voucher Details */}
               {selectedClient.enableDiscountOffer && (
