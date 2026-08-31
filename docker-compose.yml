@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: review_saas_app
     restart: always
     ports:
       - "4005:3000"
