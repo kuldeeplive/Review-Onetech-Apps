@@ -1,67 +1,50 @@
 /**
- * Google Gemini API Helper with Multi-Model & Multi-Version Auto-Fallback
- * Supports v1 and v1beta endpoints, gemini-1.5-flash, gemini-2.0-flash, gemini-1.5-pro, etc.
+ * Google Gemini API Client
+ * Optimized with systemInstruction and active models (gemini-3.6-flash, gemini-3.5-flash, gemini-flash-latest, etc.)
  */
 
 export async function callGeminiApi(
   apiKey: string,
-  prompt: string,
-  maxTokens: number = 120
+  userPrompt: string,
+  maxTokens: number = 1000,
+  systemInstructionText?: string
 ): Promise<{ success: boolean; text?: string; error?: string; modelUsed?: string }> {
   if (!apiKey || !apiKey.trim()) {
     return { success: false, error: 'API Key is empty or invalid.' };
   }
 
   const cleanKey = apiKey.trim();
+  const sysText =
+    systemInstructionText ||
+    'You are an authentic customer review assistant. Write ONLY a single, natural, 2-to-3-sentence 5-star Google review. Do not include introductory phrases, quotation marks, bullet points, personas, formatting outlines, or options. Output only the final review text.';
 
-  // List of endpoints to try in order of speed and recommendation
-  const candidateEndpoints = [
-    {
-      url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${cleanKey}`,
-      name: 'gemini-1.5-flash (v1)',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${cleanKey}`,
-      name: 'gemini-1.5-flash-latest',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`,
-      name: 'gemini-1.5-flash (v1beta)',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cleanKey}`,
-      name: 'gemini-2.0-flash',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${cleanKey}`,
-      name: 'gemini-2.0-flash-exp',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${cleanKey}`,
-      name: 'gemini-1.5-pro (v1)',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${cleanKey}`,
-      name: 'gemini-1.5-pro (v1beta)',
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${cleanKey}`,
-      name: 'gemini-pro (v1)',
-    },
+  // Top candidate models for Google Generative AI
+  const candidateModels = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-latest',
+    'gemini-3.7-flash',
+    'gemini-pro-latest',
+    'gemini-3.5-flash-lite',
   ];
 
   let lastErrorMessage = '';
 
-  for (const endpoint of candidateEndpoints) {
+  for (const model of candidateModels) {
     try {
-      const response = await fetch(endpoint.url, {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: {
+            parts: [{ text: sysText }],
+          },
+          contents: [{ parts: [{ text: userPrompt }] }],
           generationConfig: {
             maxOutputTokens: maxTokens,
-            temperature: 0.8,
+            temperature: 0.75,
           },
         }),
       });
@@ -73,8 +56,8 @@ export async function callGeminiApi(
         if (text) {
           return {
             success: true,
-            text: text.replace(/^["']|["']$/g, ''),
-            modelUsed: endpoint.name,
+            text: text.replace(/^["'`]|["'`]$/g, '').trim(),
+            modelUsed: model,
           };
         }
       } else {
@@ -101,14 +84,18 @@ export async function callGeminiApi(
 
         for (const model of supported) {
           const modelName = model.name.replace(/^models\//, '');
+          // Skip gemma base models
+          if (modelName.includes('gemma')) continue;
+
           const dynamicUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${cleanKey}`;
 
           const dynRes = await fetch(dynamicUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: maxTokens, temperature: 0.8 },
+              systemInstruction: { parts: [{ text: sysText }] },
+              contents: [{ parts: [{ text: userPrompt }] }],
+              generationConfig: { maxOutputTokens: maxTokens, temperature: 0.75 },
             }),
           });
 
@@ -118,7 +105,7 @@ export async function callGeminiApi(
             if (text) {
               return {
                 success: true,
-                text: text.replace(/^["']|["']$/g, ''),
+                text: text.replace(/^["'`]|["'`]$/g, '').trim(),
                 modelUsed: modelName,
               };
             }

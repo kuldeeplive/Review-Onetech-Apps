@@ -4,17 +4,79 @@ import { callGeminiApi } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Sanitizes and extracts clean 5-star review text from AI output,
+ * stripping away any stray prompt analysis, personas, bullet points, or options.
+ */
+function sanitizeAiReview(rawText: string, fallbackName: string, fallbackTag: string): string {
+  if (!rawText || !rawText.trim()) {
+    return generateSmartDynamicReview(fallbackName, fallbackTag, 5);
+  }
+
+  let text = rawText.trim();
+
+  // If AI output contains bullet options like "* Option 1: I had a great..." or "Option 1: ...", extract the review
+  if (text.includes('Option 1:') || text.includes('Option 1 -') || text.includes('Option 1.')) {
+    const parts = text.split(/Option 1[:.-]/i);
+    if (parts[1]) {
+      // take until Option 2 or next major header
+      text = parts[1].split(/Option 2[:.-]|\n\n\*/i)[0].trim();
+    }
+  }
+
+  // Remove markdown bullet points / asterisks at line starts
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => {
+      // Filter out meta lines
+      const lower = l.toLowerCase();
+      if (
+        lower.startsWith('* persona') ||
+        lower.startsWith('* goal') ||
+        lower.startsWith('* constraint') ||
+        lower.startsWith('persona:') ||
+        lower.startsWith('goal:') ||
+        lower.startsWith('constraint') ||
+        lower.startsWith('here is') ||
+        lower.startsWith('here are') ||
+        lower.startsWith('here\'s')
+      ) {
+        return false;
+      }
+      return l.length > 0;
+    });
+
+  text = lines.join(' ').replace(/^[*•\-]\s*/, '').trim();
+
+  // Strip leading/trailing quotation marks
+  text = text.replace(/^["'`]|["'`]$/g, '').trim();
+
+  // If text is too short (< 40 chars) or corrupted, fallback
+  if (text.length < 40) {
+    return generateSmartDynamicReview(fallbackName, fallbackTag, 5);
+  }
+
+  return text;
+}
+
 // Smart review synthesis helper (Used as instant fallback or when no external API key is configured)
-function generateSmartDynamicReview(businessName: string, tag: string, rating: number = 5): string {
+function generateSmartDynamicReview(
+  businessName: string,
+  tag: string,
+  rating: number = 5,
+  category?: string,
+  bio?: string
+): string {
   const cleanName = businessName || 'this place';
   const cleanTag = tag || 'Great Experience';
 
   const openings = [
     `Had a truly wonderful experience at ${cleanName}!`,
     `Visiting ${cleanName} was fantastic today.`,
-    `Really impressed with our visit to ${cleanName}.`,
+    `Really impressed with our experience at ${cleanName}.`,
     `Absolutely loved my experience at ${cleanName}!`,
-    `Top-notch service and quality at ${cleanName}.`,
+    `Top-notch service and outstanding quality at ${cleanName}.`,
     `Everything about ${cleanName} exceeded our expectations!`,
     `So glad we chose ${cleanName}.`,
   ];
@@ -27,7 +89,7 @@ function generateSmartDynamicReview(businessName: string, tag: string, rating: n
     ],
     'Top Quality': [
       `The attention to detail and standard of quality is remarkable.`,
-      `You can tell they genuinely care about high quality in everything they offer.`,
+      `You can tell they genuinely care about delivering high quality in everything they offer.`,
       `Exceptional standard and premium finish all around.`,
     ],
     'Great Hospitality': [
@@ -75,7 +137,6 @@ function generateSmartDynamicReview(businessName: string, tag: string, rating: n
   // Find matching or closest tag sentences
   let matchingMiddle = tagSpecificSentences[cleanTag];
   if (!matchingMiddle) {
-    // Check partial match
     const matchingKey = Object.keys(tagSpecificSentences).find((k) =>
       cleanTag.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cleanTag.toLowerCase())
     );
@@ -107,9 +168,35 @@ function generateSmartDynamicReview(businessName: string, tag: string, rating: n
 
 export async function POST(req: Request) {
   try {
-    const { businessName, tag, rating = 5 } = await req.json();
+    const { businessName, slug, tag, rating = 5 } = await req.json();
 
-    // 1. Fetch Admin AI Configuration from database
+    // 1. Fetch Business details (category & bio) from database if slug or businessName is provided
+    let businessCategory = 'General Business';
+    let businessBio = '';
+    let resolvedName = businessName || 'this business';
+
+    if (slug) {
+      const b = await prisma.business.findUnique({
+        where: { slug },
+        select: { name: true, category: true, bio: true },
+      });
+      if (b) {
+        resolvedName = b.name;
+        if (b.category) businessCategory = b.category;
+        if (b.bio) businessBio = b.bio;
+      }
+    } else if (businessName) {
+      const b = await prisma.business.findFirst({
+        where: { name: businessName },
+        select: { name: true, category: true, bio: true },
+      });
+      if (b) {
+        if (b.category) businessCategory = b.category;
+        if (b.bio) businessBio = b.bio;
+      }
+    }
+
+    // 2. Fetch Admin AI Configuration from database
     let activeProvider = 'gemini';
     let geminiKey = process.env.GEMINI_API_KEY;
     let openAiKey = process.env.OPENAI_API_KEY;
@@ -129,19 +216,30 @@ export async function POST(req: Request) {
       console.warn('Could not read systemSetting table, fallback to env:', dbErr);
     }
 
-    // 2. If Google Gemini is active and key is available
+    // Craft unambiguous, strict prompt
+    const prompt = customPrompt
+      ? `${customPrompt}\nBusiness Name: "${resolvedName}"\nIndustry/Category: "${businessCategory}"\nAbout: "${businessBio}"\nPraise Aspect: "${tag}"\nOutput only the final 2-3 sentence review text.`
+      : `Write a natural 5-star Google review for "${resolvedName}".
+Business Type: "${businessCategory}"
+What they do: "${businessBio || 'Top quality services & customer care'}"
+Key Aspect to Highlight: "${tag}"
+
+CRITICAL INSTRUCTIONS:
+- Write exactly 2 to 3 natural, positive, and authentic sentences as a delighted real customer.
+- Mention or reflect their actual services/business naturally so the review is highly relevant.
+- Do NOT output bullet points, persona lists, options (like Option 1), formatting rules, markdown headers, or quotes.
+- Output ONLY the review paragraph text.`;
+
+    // 3. If Google Gemini is active and key is available
     if ((activeProvider === 'gemini' || !openAiKey) && geminiKey) {
       try {
-        const prompt = customPrompt
-          ? `${customPrompt}\nBusiness Name: "${businessName}", Highlight: "${tag}"`
-          : `You are a satisfied real customer writing an authentic, natural, 2-to-3-sentence 5-star Google review for "${businessName}". Highlight the aspect: "${tag}". Make it sound casual, genuine, positive, and human. Do not include quotes, markdown bold, or intro text. Just the review body.`;
-
-        const geminiResult = await callGeminiApi(geminiKey, prompt, 120);
+        const geminiResult = await callGeminiApi(geminiKey, prompt, 1000);
 
         if (geminiResult.success && geminiResult.text) {
+          const cleanReview = sanitizeAiReview(geminiResult.text, resolvedName, tag);
           return NextResponse.json({
             success: true,
-            review: geminiResult.text,
+            review: cleanReview,
             source: `gemini (${geminiResult.modelUsed})`,
           });
         }
@@ -150,11 +248,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. If OpenAI is active and key is available
+    // 4. If OpenAI is active and key is available
     if ((activeProvider === 'openai' || !geminiKey) && openAiKey) {
       try {
-        const prompt = `Write an authentic, casual, 2-to-3-sentence 5-star Google review for "${businessName}". Highlight: "${tag}". Do not include quotes or intro text.`;
-
         const openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -164,18 +260,19 @@ export async function POST(req: Request) {
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 120,
-            temperature: 0.85,
+            max_tokens: 100,
+            temperature: 0.8,
           }),
         });
 
         if (openAiRes.ok) {
           const data = await openAiRes.json();
-          const generatedText = data?.choices?.[0]?.message?.content?.trim();
-          if (generatedText) {
+          const raw = data?.choices?.[0]?.message?.content?.trim();
+          if (raw) {
+            const cleanReview = sanitizeAiReview(raw, resolvedName, tag);
             return NextResponse.json({
               success: true,
-              review: generatedText.replace(/^["']|["']$/g, ''),
+              review: cleanReview,
               source: 'openai',
             });
           }
@@ -185,8 +282,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Instant Smart Permutation Engine (Zero latency / fallback)
-    const review = generateSmartDynamicReview(businessName, tag, rating);
+    // 5. Instant Smart Permutation Engine (Zero latency / fallback)
+    const review = generateSmartDynamicReview(
+      resolvedName,
+      tag,
+      rating,
+      businessCategory,
+      businessBio
+    );
     return NextResponse.json({
       success: true,
       review,

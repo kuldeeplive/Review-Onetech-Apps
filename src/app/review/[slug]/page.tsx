@@ -77,6 +77,7 @@ export default function PublicReviewPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessName: business?.name || 'this business',
+          slug: business?.slug || slug,
           tag,
           rating: selectedRating || 5,
         }),

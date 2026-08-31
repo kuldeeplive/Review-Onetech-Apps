@@ -38,6 +38,8 @@ export default function SettingsPage() {
 
   const [formData, setFormData] = useState({
     name: '',
+    category: 'IT & Software',
+    bio: '',
     googleReviewUrl: '',
     minPositiveRating: 4,
     collectFeedbackOnLowRating: true,
@@ -124,6 +126,8 @@ export default function SettingsPage() {
       if (data.business) {
         setFormData({
           name: data.business.name || '',
+          category: data.business.category || 'IT & Software',
+          bio: data.business.bio || '',
           googleReviewUrl: data.business.googleReviewUrl || '',
           minPositiveRating: data.business.minPositiveRating || 4,
           collectFeedbackOnLowRating: data.business.collectFeedbackOnLowRating ?? true,
@@ -538,6 +542,42 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-6">
+              {/* Business Category & Bio for AI */}
+              <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      Business Category / Industry
+                    </label>
+                    <span className="text-[10px] font-bold text-indigo-600">AI Context</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    placeholder="e.g. IT & Software Company, Dental Clinic, Cafe & Restaurant, Salon"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-900 mb-1">
+                    Business Bio / What do you do? (For AI Review Generator)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={formData.bio}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    placeholder="e.g. We provide custom web & mobile app development, cloud infrastructure, and IT consultancy services for businesses."
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium leading-relaxed"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Describe your core products, services, or specialties. The AI engine reads this to generate 100% accurate, realistic 5-star reviews for your customers.
+                  </p>
+                </div>
+              </div>
+
               {/* Positive Praise Tags */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-800">

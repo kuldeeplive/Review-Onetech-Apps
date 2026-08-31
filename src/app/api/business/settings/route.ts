@@ -59,6 +59,8 @@ export async function PUT(req: Request) {
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
+    if (body.category !== undefined) updateData.category = body.category;
+    if (body.bio !== undefined) updateData.bio = body.bio;
     if (googleReviewUrl !== undefined) updateData.googleReviewUrl = googleReviewUrl;
     if (minPositiveRating !== undefined) updateData.minPositiveRating = Number(minPositiveRating);
     if (collectFeedbackOnLowRating !== undefined) updateData.collectFeedbackOnLowRating = Boolean(collectFeedbackOnLowRating);
