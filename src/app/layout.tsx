@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'OneTech Review Management Portal',
-  description: 'Smart Google Review Gating and Private Feedback Management System',
+  title: 'AI Magic Review - Smart 5-Star Google Review & Reputation Platform',
+  description: 'Boost 5-star Google Reviews and filter negative feedback privately with AI Magic Review.',
 };
 
 export default function RootLayout({

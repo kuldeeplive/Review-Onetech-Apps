@@ -75,15 +75,15 @@ export default function Navbar({ user }: NavbarProps) {
           <div className="flex items-center gap-8">
             <Link
               href={isSuperAdmin ? '/super-admin' : '/dashboard'}
-              className="flex items-center gap-2.5 group"
+              className="flex items-center gap-3 group"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                <Sparkles className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center p-1 group-hover:scale-105 transition-transform overflow-hidden">
+                <img src="/logo.webp" alt="AI Magic Review" className="w-full h-full object-contain" />
               </div>
               <div>
-                <span className="font-extrabold text-xl text-slate-900 tracking-tight flex items-center gap-1.5">
-                  RepuBoost
-                  <span className="text-xs uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold tracking-wider">
+                <span className="font-extrabold text-lg text-slate-900 tracking-tight flex items-center gap-1.5">
+                  AI Magic Review
+                  <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold tracking-wider">
                     SaaS
                   </span>
                 </span>
