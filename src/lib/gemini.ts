@@ -6,8 +6,9 @@
 export async function callGeminiApi(
   apiKey: string,
   userPrompt: string,
-  maxTokens: number = 1000,
-  systemInstructionText?: string
+  maxTokens: number = 500,
+  systemInstructionText?: string,
+  preferredModel?: string
 ): Promise<{ success: boolean; text?: string; error?: string; modelUsed?: string }> {
   if (!apiKey || !apiKey.trim()) {
     return { success: false, error: 'API Key is empty or invalid.' };
@@ -18,19 +19,22 @@ export async function callGeminiApi(
     systemInstructionText ||
     'You are an authentic customer review assistant. Write ONLY a single, natural, 2-to-3-sentence 5-star Google review. Do not include introductory phrases, quotation marks, bullet points, personas, formatting outlines, or options. Output only the final review text.';
 
-  // Top candidate models for Google Generative AI
+  // Top candidate models for Google Generative AI (Ordered by speed & reliability)
   const candidateModels = [
+    preferredModel,
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
     'gemini-3.6-flash',
     'gemini-3.5-flash',
     'gemini-flash-latest',
-    'gemini-3.7-flash',
-    'gemini-pro-latest',
-    'gemini-3.5-flash-lite',
-  ];
+  ].filter(Boolean) as string[];
+
+  // Remove duplicates
+  const uniqueModels = Array.from(new Set(candidateModels));
 
   let lastErrorMessage = '';
 
-  for (const model of candidateModels) {
+  for (const model of uniqueModels) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
 

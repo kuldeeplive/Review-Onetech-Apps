@@ -110,7 +110,9 @@ model SystemSetting {
   id             String    @id @default("global_config")
   aiProvider     String    @default("gemini") // "gemini", "openai", "smart_randomizer"
   geminiApiKey   String?
+  geminiModel    String?   @default("gemini-3.5-flash-lite") // "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"
   openAiApiKey   String?
+  openAiModel    String?   @default("gpt-4o-mini") // "gpt-4o-mini", "gpt-4o"
   aiCustomPrompt String?
   updatedAt      DateTime  @updatedAt
 }

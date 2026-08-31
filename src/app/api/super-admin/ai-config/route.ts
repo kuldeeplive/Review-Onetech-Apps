@@ -28,7 +28,9 @@ export async function GET() {
           id: 'global_config',
           aiProvider: 'gemini',
           geminiApiKey: process.env.GEMINI_API_KEY || '',
+          geminiModel: 'gemini-3.5-flash-lite',
           openAiApiKey: process.env.OPENAI_API_KEY || '',
+          openAiModel: 'gpt-4o-mini',
         },
       });
     }
@@ -38,7 +40,9 @@ export async function GET() {
       config: {
         aiProvider: config.aiProvider,
         geminiApiKey: config.geminiApiKey || '',
+        geminiModel: config.geminiModel || 'gemini-3.5-flash-lite',
         openAiApiKey: config.openAiApiKey || '',
+        openAiModel: config.openAiModel || 'gpt-4o-mini',
         aiCustomPrompt: config.aiCustomPrompt || '',
         hasGeminiKey: Boolean(config.geminiApiKey || process.env.GEMINI_API_KEY),
         hasOpenAiKey: Boolean(config.openAiApiKey || process.env.OPENAI_API_KEY),
@@ -60,21 +64,25 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { aiProvider, geminiApiKey, openAiApiKey, aiCustomPrompt } = body;
+    const { aiProvider, geminiApiKey, geminiModel, openAiApiKey, openAiModel, aiCustomPrompt } = body;
 
     const config = await prisma.systemSetting.upsert({
       where: { id: 'global_config' },
       update: {
         aiProvider: aiProvider || 'gemini',
         geminiApiKey: geminiApiKey !== undefined ? geminiApiKey.trim() : undefined,
+        geminiModel: geminiModel !== undefined ? geminiModel.trim() : 'gemini-3.5-flash-lite',
         openAiApiKey: openAiApiKey !== undefined ? openAiApiKey.trim() : undefined,
+        openAiModel: openAiModel !== undefined ? openAiModel.trim() : 'gpt-4o-mini',
         aiCustomPrompt: aiCustomPrompt !== undefined ? aiCustomPrompt.trim() : undefined,
       },
       create: {
         id: 'global_config',
         aiProvider: aiProvider || 'gemini',
         geminiApiKey: geminiApiKey ? geminiApiKey.trim() : null,
+        geminiModel: geminiModel ? geminiModel.trim() : 'gemini-3.5-flash-lite',
         openAiApiKey: openAiApiKey ? openAiApiKey.trim() : null,
+        openAiModel: openAiModel ? openAiModel.trim() : 'gpt-4o-mini',
         aiCustomPrompt: aiCustomPrompt ? aiCustomPrompt.trim() : null,
       },
     });
@@ -85,7 +93,9 @@ export async function POST(req: Request) {
       config: {
         aiProvider: config.aiProvider,
         geminiApiKey: config.geminiApiKey,
+        geminiModel: config.geminiModel,
         openAiApiKey: config.openAiApiKey,
+        openAiModel: config.openAiModel,
         aiCustomPrompt: config.aiCustomPrompt,
       },
     });

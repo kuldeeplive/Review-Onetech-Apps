@@ -172,7 +172,9 @@ export default function SuperAdminPage() {
   const [aiConfig, setAiConfig] = useState({
     aiProvider: 'gemini',
     geminiApiKey: '',
+    geminiModel: 'gemini-3.5-flash-lite',
     openAiApiKey: '',
+    openAiModel: 'gpt-4o-mini',
     aiCustomPrompt: '',
   });
   const [aiLoading, setAiLoading] = useState(false);
@@ -307,7 +309,9 @@ export default function SuperAdminPage() {
         setAiConfig({
           aiProvider: data.config.aiProvider || 'gemini',
           geminiApiKey: data.config.geminiApiKey || '',
+          geminiModel: data.config.geminiModel || 'gemini-3.5-flash-lite',
           openAiApiKey: data.config.openAiApiKey || '',
+          openAiModel: data.config.openAiModel || 'gpt-4o-mini',
           aiCustomPrompt: data.config.aiCustomPrompt || '',
         });
       }
@@ -365,6 +369,7 @@ export default function SuperAdminPage() {
         body: JSON.stringify({
           provider: aiConfig.aiProvider,
           apiKey: currentKey,
+          model: aiConfig.aiProvider === 'gemini' ? aiConfig.geminiModel : aiConfig.openAiModel,
         }),
       });
       const data = await res.json();
@@ -1195,8 +1200,8 @@ export default function SuperAdminPage() {
             </div>
           </div>
 
-          {/* 2. Google Gemini API Key Input */}
-          <div className={`p-4 rounded-xl border transition space-y-2 ${
+          {/* 2. Google Gemini API Key & Model Selector */}
+          <div className={`p-4 rounded-xl border transition space-y-3 ${
             aiConfig.aiProvider === 'gemini' ? 'bg-blue-50/30 border-blue-200' : 'bg-slate-50 border-slate-200'
           }`}>
             <div className="flex items-center justify-between">
@@ -1229,13 +1234,41 @@ export default function SuperAdminPage() {
                 {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[10px] text-slate-500">
-              Paste your Google Gemini API key here. Key will be securely stored in your database.
-            </p>
+
+            {/* Gemini Model Selector */}
+            <div className="pt-1">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                ⚡ Select Gemini Model / Speed Tier:
+              </label>
+              <select
+                value={aiConfig.geminiModel || 'gemini-3.5-flash-lite'}
+                onChange={(e) => setAiConfig({ ...aiConfig, geminiModel: e.target.value })}
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value="gemini-3.5-flash-lite">
+                  ⚡ Gemini 3.5 Flash-Lite (Super Fast ~1s • Lowest Cost / Free Tier • Recommended)
+                </option>
+                <option value="gemini-3.1-flash-lite">
+                  ⚡ Gemini 3.1 Flash-Lite (Fast ~2s • Free Tier)
+                </option>
+                <option value="gemini-3.6-flash">
+                  🧠 Gemini 3.6 Flash (High Intelligence & Deep Detail • ~2-3s)
+                </option>
+                <option value="gemini-3.5-flash">
+                  ⚡ Gemini 3.5 Flash (Balanced Speed & Reasoning)
+                </option>
+                <option value="gemini-flash-latest">
+                  ✨ Gemini Flash Latest (Always latest production model)
+                </option>
+              </select>
+              <p className="text-[10px] text-slate-500 mt-1">
+                <strong>Gemini 3.5 Flash-Lite</strong> generates 5-star reviews in approximately ~1 second with zero thinking delay.
+              </p>
+            </div>
           </div>
 
-          {/* 3. OpenAI API Key Input */}
-          <div className={`p-4 rounded-xl border transition space-y-2 ${
+          {/* 3. OpenAI API Key & Model Selector */}
+          <div className={`p-4 rounded-xl border transition space-y-3 ${
             aiConfig.aiProvider === 'openai' ? 'bg-purple-50/30 border-purple-200' : 'bg-slate-50 border-slate-200'
           }`}>
             <div className="flex items-center justify-between">
@@ -1268,9 +1301,28 @@ export default function SuperAdminPage() {
                 {showOpenAiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[10px] text-slate-500">
-              Paste your OpenAI API key here. Required only if OpenAI provider is selected.
-            </p>
+
+            {/* OpenAI Model Selector */}
+            <div className="pt-1">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                ⚡ Select OpenAI Model:
+              </label>
+              <select
+                value={aiConfig.openAiModel || 'gpt-4o-mini'}
+                onChange={(e) => setAiConfig({ ...aiConfig, openAiModel: e.target.value })}
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              >
+                <option value="gpt-4o-mini">
+                  ⚡ GPT-4o Mini (Ultra Fast ~0.6s • Dirt Cheap • Recommended)
+                </option>
+                <option value="gpt-4o">
+                  🧠 GPT-4o (Flagship Model • Premium Quality)
+                </option>
+                <option value="gpt-3.5-turbo">
+                  Legacy GPT-3.5 Turbo
+                </option>
+              </select>
+            </div>
           </div>
 
           {/* Save Button */}

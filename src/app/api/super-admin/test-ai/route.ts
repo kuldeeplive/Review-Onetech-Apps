@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { provider, apiKey } = await req.json();
+    const { provider, apiKey, model } = await req.json();
 
     if (!apiKey || !apiKey.trim()) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     // 1. Test Google Gemini API
     if (provider === 'gemini') {
-      const result = await callGeminiApi(apiKey, testPrompt, 80);
+      const result = await callGeminiApi(apiKey, testPrompt, 300, undefined, model);
 
       if (!result.success) {
         return NextResponse.json(
@@ -58,9 +58,9 @@ export async function POST(req: Request) {
           Authorization: `Bearer ${apiKey.trim()}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: model || 'gpt-4o-mini',
           messages: [{ role: 'user', content: testPrompt }],
-          max_tokens: 80,
+          max_tokens: 100,
           temperature: 0.7,
         }),
       });

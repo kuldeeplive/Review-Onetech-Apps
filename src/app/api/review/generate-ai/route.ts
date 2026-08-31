@@ -225,7 +225,9 @@ export async function POST(req: Request) {
     // 2. Fetch Admin AI Configuration from database
     let activeProvider = 'gemini';
     let geminiKey = process.env.GEMINI_API_KEY;
+    let preferredGeminiModel = 'gemini-3.5-flash-lite';
     let openAiKey = process.env.OPENAI_API_KEY;
+    let preferredOpenAiModel = 'gpt-4o-mini';
     let customPrompt: string | null = null;
 
     try {
@@ -235,7 +237,9 @@ export async function POST(req: Request) {
       if (config) {
         if (config.aiProvider) activeProvider = config.aiProvider;
         if (config.geminiApiKey) geminiKey = config.geminiApiKey;
+        if (config.geminiModel) preferredGeminiModel = config.geminiModel;
         if (config.openAiApiKey) openAiKey = config.openAiApiKey;
+        if (config.openAiModel) preferredOpenAiModel = config.openAiModel;
         if (config.aiCustomPrompt) customPrompt = config.aiCustomPrompt;
       }
     } catch (dbErr) {
@@ -267,7 +271,13 @@ STRICT INSTRUCTIONS:
     // 3. If Google Gemini is active and key is available
     if ((activeProvider === 'gemini' || !openAiKey) && geminiKey) {
       try {
-        const geminiResult = await callGeminiApi(geminiKey, prompt, 1000);
+        const geminiResult = await callGeminiApi(
+          geminiKey,
+          prompt,
+          500,
+          undefined,
+          preferredGeminiModel
+        );
 
         if (geminiResult.success && geminiResult.text) {
           const cleanReview = sanitizeAiReview(geminiResult.text, resolvedName, primaryAspect);
@@ -289,12 +299,19 @@ STRICT INSTRUCTIONS:
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${openAiKey}`,
+            Authorization: `Bearer ${openAiKey.trim()}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 100,
+            model: preferredOpenAiModel || 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are an authentic customer review assistant. Write ONLY a single, natural, 2-to-3-sentence 5-star Google review. Do not include quotes, markdown bold, or introductory phrases.',
+              },
+              { role: 'user', content: prompt },
+            ],
+            max_tokens: 250,
             temperature: 0.8,
           }),
         });
