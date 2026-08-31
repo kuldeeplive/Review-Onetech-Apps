@@ -7,16 +7,17 @@ async function main() {
   console.log('Seeding initial data...');
 
   // 1. Create Super Admin
-  const adminPasswordHash = await bcrypt.hash('admin123', 10);
+  const adminPasswordHash = await bcrypt.hash('Jabalpur@123', 10);
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
+    where: { email: 'kuldeep.live@gmail.com' },
     update: {
       password: adminPasswordHash,
       role: 'SUPER_ADMIN',
+      name: 'Kuldeep Prajapat',
     },
     create: {
-      name: 'Super Admin Master',
-      email: 'admin@example.com',
+      name: 'Kuldeep Prajapat',
+      email: 'kuldeep.live@gmail.com',
       password: adminPasswordHash,
       role: 'SUPER_ADMIN',
       phone: '+91 99999 00000',
