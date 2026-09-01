@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import {
   Users,
   Building2,
@@ -1343,6 +1344,8 @@ export default function SuperAdminPage() {
         </form>
       </div>
     )}
+
+    <Footer className="pt-8 pb-4" />
   </main>
 
       {/* Onboard New Client Modal */}

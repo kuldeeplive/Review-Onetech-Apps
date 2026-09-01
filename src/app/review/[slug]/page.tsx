@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Footer from '@/components/Footer';
 import {
   Star,
   Sparkles,
@@ -692,6 +693,8 @@ export default function PublicReviewPage() {
           )}
 
         </div>
+
+        <Footer className="mt-4 text-slate-500" />
       </div>
     </div>
   );

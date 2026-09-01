@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import {
   Star,
   MessageSquareWarning,
@@ -573,6 +574,8 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        <Footer className="pt-8" />
       </main>
 
       {/* Resolution Modal */}

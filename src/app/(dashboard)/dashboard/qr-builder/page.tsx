@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import {
   QrCode,
   Download,
@@ -466,6 +467,8 @@ export default function QRBuilderPage() {
             </div>
           </div>
         </div>
+
+        <Footer className="pt-8" />
       </main>
 
       {/* ======================================================== */}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import {
   Star,
   Settings,
@@ -42,8 +43,8 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState('');
   const [error, setError] = useState('');
 
-  // Active Tab: 'ai_flow' | 'business_profile' | 'feedback_gating' | 'notifications' | 'security'
-  const [activeTab, setActiveTab] = useState<'ai_flow' | 'business_profile' | 'feedback_gating' | 'notifications' | 'security'>('ai_flow');
+  // Active Tab: 'ai_flow' | 'business_profile' | 'feedback_gating' | 'security'
+  const [activeTab, setActiveTab] = useState<'ai_flow' | 'business_profile' | 'feedback_gating' | 'security'>('ai_flow');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -336,12 +337,6 @@ export default function SettingsPage() {
               label: 'Private Feedback & Vouchers',
               icon: MessageSquareWarning,
               badge: null,
-            },
-            {
-              id: 'notifications',
-              label: 'Instant Alerts',
-              icon: Bell,
-              badge: formData.whatsappAlertEnabled ? 'WhatsApp ON' : null,
             },
             {
               id: 'security',
@@ -1075,84 +1070,7 @@ export default function SettingsPage() {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 4: INSTANT ALERTS & NOTIFICATIONS                                     */}
-          {/* ========================================================================= */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
-                <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                    <Bell className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-extrabold text-slate-900">
-                      Real-Time Negative Feedback Alerts
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Get alerted instantly on WhatsApp or Email whenever a customer submits private negative feedback.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* WhatsApp Alerts */}
-                  <div className="p-5 rounded-2xl bg-emerald-50/40 border border-emerald-100 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-                        <Phone className="w-4 h-4 text-emerald-600" />
-                        Manager WhatsApp Alerts
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold uppercase">
-                        Active
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="+91 98765 43210"
-                        value={formData.notificationPhone}
-                        onChange={(e) => setFormData({ ...formData, notificationPhone: e.target.value })}
-                        className="w-full pl-9 pr-4 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold"
-                      />
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      Instant WhatsApp alert will be sent with customer's name, rating, and complaint reason.
-                    </p>
-                  </div>
-
-                  {/* Email Alerts */}
-                  <div className="p-5 rounded-2xl bg-blue-50/40 border border-blue-100 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                        Notification Email Address
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold uppercase">
-                        Active
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        placeholder="manager@business.com"
-                        value={formData.notificationEmail}
-                        onChange={(e) => setFormData({ ...formData, notificationEmail: e.target.value })}
-                        className="w-full pl-9 pr-4 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      />
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      Daily digest and emergency ticket copies will be dispatched to this mailbox.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* TAB 5: ACCOUNT SECURITY & CHANGE PASSWORD                                */}
+          {/* TAB 4: ACCOUNT SECURITY & CHANGE PASSWORD                                */}
           {/* ========================================================================= */}
           {activeTab === 'security' && (
             <div className="space-y-6 animate-fadeIn">
@@ -1269,6 +1187,8 @@ export default function SettingsPage() {
             </div>
           )}
         </form>
+
+        <Footer className="pt-8 pb-10" />
       </main>
 
       {/* FLOATING STICKY SAVE BAR AT BOTTOM */}

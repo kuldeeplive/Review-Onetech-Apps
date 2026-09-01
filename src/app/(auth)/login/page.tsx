@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Lock, Mail, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -135,6 +136,8 @@ export default function LoginPage() {
             <span>Encrypted & Secure Cloud Authentication</span>
           </div>
         </div>
+
+        <Footer className="mt-2 text-slate-500" />
       </div>
     </div>
   );
