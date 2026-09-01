@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getBillingCycleStart, getNextBillingResetDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,20 +32,20 @@ export async function GET(req: Request) {
 
     const business = await prisma.business.findUnique({
       where: { id: user.businessId },
-      select: { monthlyScanLimit: true, planName: true },
+      select: { monthlyScanLimit: true, planName: true, createdAt: true },
     });
 
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const cycleStart = getBillingCycleStart(business?.createdAt);
 
     const scans = await prisma.scanAnalytics.findMany({
       where: { businessId: user.businessId },
       select: { id: true, action: true, createdAt: true },
     });
 
-    const scansThisMonth = scans.filter((s) => new Date(s.createdAt) >= startOfMonth).length;
+    const scansThisCycle = scans.filter((s) => new Date(s.createdAt) >= cycleStart).length;
     const monthlyScanLimit = business?.monthlyScanLimit ?? 500;
     const isUnlimited = monthlyScanLimit === -1;
-    const usagePercent = isUnlimited ? 0 : Math.min(100, Math.round((scansThisMonth / monthlyScanLimit) * 100));
+    const usagePercent = isUnlimited ? 0 : Math.min(100, Math.round((scansThisCycle / monthlyScanLimit) * 100));
 
     const metrics = {
       totalFeedbacks: allFeedbacks.length,
@@ -52,10 +53,11 @@ export async function GET(req: Request) {
       contactedCount: allFeedbacks.filter((f) => f.status === 'CONTACTED').length,
       resolvedCount: allFeedbacks.filter((f) => f.status === 'RESOLVED').length,
       totalScans: scans.length,
-      scansThisMonth,
+      scansThisMonth: scansThisCycle,
       monthlyScanLimit,
       isUnlimited,
       usagePercent,
+      cycleResetDate: getNextBillingResetDate(business?.createdAt),
       planName: business?.planName || 'Pro Plan',
       positiveRedirects: scans.filter((s) => s.action === 'REDIRECTED_GOOGLE').length,
       avgRating: allFeedbacks.length

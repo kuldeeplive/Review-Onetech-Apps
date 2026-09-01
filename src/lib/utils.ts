@@ -68,3 +68,56 @@ export const AI_REVIEW_PRESETS = [
     text: 'Loved the vibe and cleanliness of the place. Friendly team, prompt response, and outstanding attention to detail.',
   },
 ];
+
+/**
+ * Calculates the start date of the current billing cycle for a business based on the date they joined / subscribed.
+ * For example: If created on 15th Aug, on 10th Sept the cycle start is 15th Aug. On 16th Sept the cycle start is 15th Sept.
+ */
+export function getBillingCycleStart(anchorDate?: Date | string | null): Date {
+  const now = new Date();
+  if (!anchorDate) {
+    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  }
+
+  const anchor = new Date(anchorDate);
+  const anchorDay = anchor.getDate();
+
+  let cycleYear = now.getFullYear();
+  let cycleMonth = now.getMonth();
+
+  // If today's date is before the monthly anchor day, the current cycle started in the previous month
+  if (now.getDate() < anchorDay) {
+    cycleMonth -= 1;
+    if (cycleMonth < 0) {
+      cycleMonth = 11;
+      cycleYear -= 1;
+    }
+  }
+
+  // Handle months with fewer days (e.g. Feb 28/29, April 30)
+  const daysInCycleMonth = new Date(cycleYear, cycleMonth + 1, 0).getDate();
+  const actualDay = Math.min(anchorDay, daysInCycleMonth);
+
+  return new Date(cycleYear, cycleMonth, actualDay, 0, 0, 0, 0);
+}
+
+/**
+ * Calculates the next reset date for the billing cycle.
+ */
+export function getNextBillingResetDate(anchorDate?: Date | string | null): Date {
+  const cycleStart = getBillingCycleStart(anchorDate);
+  const anchor = anchorDate ? new Date(anchorDate) : new Date();
+  const anchorDay = anchor.getDate();
+
+  let nextYear = cycleStart.getFullYear();
+  let nextMonth = cycleStart.getMonth() + 1;
+  if (nextMonth > 11) {
+    nextMonth = 0;
+    nextYear += 1;
+  }
+
+  const daysInNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
+  const actualDay = Math.min(anchorDay, daysInNextMonth);
+
+  return new Date(nextYear, nextMonth, actualDay, 0, 0, 0, 0);
+}

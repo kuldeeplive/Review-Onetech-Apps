@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getBillingCycleStart, getNextBillingResetDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,7 @@ export async function GET(
         negativeMessage: true,
         monthlyScanLimit: true,
         planExpiresAt: true,
+        createdAt: true,
       },
     });
 
@@ -62,20 +64,20 @@ export async function GET(
       );
     }
 
-    // Check Monthly Scan Limit
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const scansThisMonth = await prisma.scanAnalytics.count({
+    // Check Billing Cycle Scan Limit (Date-to-Date based on subscription start)
+    const cycleStart = getBillingCycleStart(business.createdAt);
+    const scansThisCycle = await prisma.scanAnalytics.count({
       where: {
         businessId: business.id,
-        createdAt: { gte: startOfMonth },
+        createdAt: { gte: cycleStart },
       },
     });
 
     const limit = business.monthlyScanLimit ?? 500;
-    if (limit !== -1 && scansThisMonth >= limit) {
+    if (limit !== -1 && scansThisCycle >= limit) {
       return NextResponse.json(
         {
-          error: 'This business review portal has reached its monthly scan limit.',
+          error: 'This business review portal has reached its monthly scan limit for the current billing cycle.',
           quotaExceeded: true,
           businessName: business.name,
         },
@@ -100,8 +102,9 @@ export async function GET(
     return NextResponse.json({
       business,
       usage: {
-        scansThisMonth,
+        scansThisMonth: scansThisCycle,
         monthlyScanLimit: limit,
+        cycleResetDate: getNextBillingResetDate(business.createdAt),
       },
     });
   } catch (error: any) {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { slugify } from '@/lib/utils';
+import { slugify, getBillingCycleStart, getNextBillingResetDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +67,8 @@ export async function GET() {
     const formattedBusinesses = businesses.map((b) => {
       const negativeCount = b.feedbacks.filter((f) => f.rating < b.minPositiveRating).length;
       const positiveCount = b.scans.filter((s) => s.action === 'REDIRECTED_GOOGLE').length;
-      const scansThisMonth = b.scans.filter((s) => new Date(s.createdAt) >= startOfMonth).length;
+      const cycleStart = getBillingCycleStart(b.createdAt);
+      const scansThisCycle = b.scans.filter((s) => new Date(s.createdAt) >= cycleStart).length;
 
       return {
         id: b.id,
@@ -101,7 +102,8 @@ export async function GET() {
         planPrice: b.planPrice,
         planExpiresAt: b.planExpiresAt,
         monthlyScanLimit: b.monthlyScanLimit ?? 500,
-        scansThisMonth: scansThisMonth,
+        scansThisMonth: scansThisCycle,
+        cycleResetDate: getNextBillingResetDate(b.createdAt),
         primaryColor: b.primaryColor,
         positiveMessage: b.positiveMessage,
         negativeMessage: b.negativeMessage,

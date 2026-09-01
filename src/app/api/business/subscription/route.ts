@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getBillingCycleStart, getNextBillingResetDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,12 +26,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    // Compute scans this month
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const scansThisMonth = await prisma.scanAnalytics.count({
+    // Compute scans in current billing cycle (Date-to-Date e.g. 15th to 15th)
+    const cycleStart = getBillingCycleStart(business.createdAt);
+    const scansThisCycle = await prisma.scanAnalytics.count({
       where: {
         businessId: business.id,
-        createdAt: { gte: startOfMonth },
+        createdAt: { gte: cycleStart },
       },
     });
 
@@ -70,7 +71,8 @@ export async function GET() {
         daysRemaining,
         isActive: business.isActive,
         monthlyScanLimit: business.monthlyScanLimit ?? 500,
-        scansThisMonth,
+        scansThisMonth: scansThisCycle,
+        cycleResetDate: getNextBillingResetDate(business.createdAt),
       },
       transactions: transactionsList,
     });

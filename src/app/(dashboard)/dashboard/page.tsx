@@ -283,7 +283,11 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <QrCode className="w-4 h-4 text-blue-600" />
-                  Monthly QR Scan Quota:
+                  Monthly QR Scan Quota {subscriptionData.plan?.cycleResetDate && (
+                    <span className="text-[10px] text-slate-500 font-normal">
+                      (Resets on {new Date(subscriptionData.plan.cycleResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                    </span>
+                  )}:
                 </span>
                 <span className="font-extrabold text-slate-900">
                   {subscriptionData.plan?.monthlyScanLimit === -1
