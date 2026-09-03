@@ -58,6 +58,15 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Safe background auto-pruning: remove scan analytics strictly older than 60 days
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    prisma.scanAnalytics
+      .deleteMany({
+        where: { createdAt: { lt: sixtyDaysAgo } },
+      })
+      .catch((err) => console.error('Background scan prune notice:', err));
+
     // Compute start of current calendar month
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
