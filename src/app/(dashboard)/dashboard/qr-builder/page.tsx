@@ -468,7 +468,12 @@ export default function QRBuilderPage() {
           </div>
         </div>
 
-        <Footer className="pt-8" />
+        <Footer
+          className="pt-8"
+          brandName={user?.business?.agency?.brandName || user?.business?.agency?.name}
+          footerText={user?.business?.agency?.customFooterText}
+          footerUrl={user?.business?.agency?.customFooterUrl}
+        />
       </main>
 
       {/* ======================================================== */}

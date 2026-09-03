@@ -35,6 +35,19 @@ export async function GET() {
           discountOfferText: true,
           positiveMessage: true,
           negativeMessage: true,
+          agency: {
+            select: {
+              id: true,
+              name: true,
+              brandName: true,
+              logoUrl: true,
+              themeColor: true,
+              customFooterText: true,
+              customFooterUrl: true,
+              supportEmail: true,
+              supportPhone: true,
+            },
+          },
         },
       });
     }

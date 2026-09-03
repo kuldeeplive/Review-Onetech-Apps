@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser, signToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
-// Impersonate a client
+// Impersonate a client (Super Admin or Agency Owner)
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized. Super Admin access required.' }, { status: 403 });
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY')) {
+      return NextResponse.json({ error: 'Unauthorized. Admin or Agency access required.' }, { status: 403 });
     }
 
     const { businessId } = await req.json();
@@ -17,20 +17,30 @@ export async function POST(req: Request) {
 
     const targetBusiness = await prisma.business.findUnique({
       where: { id: businessId },
-      include: { owner: true },
+      include: {
+        owner: true,
+        agency: true,
+      },
     });
 
     if (!targetBusiness) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
+    // Security check: If Agency, can only impersonate their own clients!
+    if (user.role === 'AGENCY' && targetBusiness.agencyId !== user.agencyId) {
+      return NextResponse.json({ error: 'Unauthorized. You can only manage your own clients.' }, { status: 403 });
+    }
+
     const tokenPayload = {
-      userId: user.userId, // keep super admin original user ID
+      userId: user.userId,
       email: user.email,
-      role: 'BUSINESS_OWNER', // switch role context to owner
+      role: 'BUSINESS_OWNER',
       impersonatedBusinessId: targetBusiness.id,
       impersonatedBusinessSlug: targetBusiness.slug,
       isImpersonating: true,
+      originalRole: user.role,
+      originalAgencyId: user.agencyId || null,
       originalSuperAdminId: user.userId,
     };
 
@@ -57,7 +67,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Exit impersonation and return to Super Admin
+// Exit impersonation and return to Super Admin or Agency Portal
 export async function DELETE() {
   try {
     const user = await getCurrentUser();
@@ -68,23 +78,33 @@ export async function DELETE() {
     // Re-fetch original user
     const dbUser = await prisma.user.findUnique({
       where: { id: user.userId },
+      include: { agency: true },
     });
 
-    if (!dbUser || dbUser.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Invalid user' }, { status: 403 });
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const tokenPayload = {
+    const isAgency = dbUser.role === 'AGENCY';
+    const tokenPayload: any = {
       userId: dbUser.id,
       email: dbUser.email,
-      role: 'SUPER_ADMIN',
+      role: dbUser.role,
     };
+
+    if (isAgency && dbUser.agency) {
+      tokenPayload.agencyId = dbUser.agency.id;
+      tokenPayload.agencySlug = dbUser.agency.slug;
+      tokenPayload.agencyName = dbUser.agency.name;
+    }
 
     const token = signToken(tokenPayload);
 
     const response = NextResponse.json({
       success: true,
-      message: 'Returned to Super Admin panel',
+      role: dbUser.role,
+      returnUrl: isAgency ? '/agency' : '/super-admin',
+      message: isAgency ? 'Returned to Agency Portal' : 'Returned to Super Admin panel',
     });
 
     response.cookies.set('auth_token', token, {
@@ -98,6 +118,6 @@ export async function DELETE() {
     return response;
   } catch (error: any) {
     console.error('Exit impersonation error:', error);
-    return NextResponse.json({ error: 'Failed to revert to Super Admin' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to revert impersonation' }, { status: 500 });
   }
 }

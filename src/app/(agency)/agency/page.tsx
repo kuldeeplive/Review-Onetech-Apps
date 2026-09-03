@@ -27,6 +27,7 @@ import {
   Check,
   Power,
   RotateCw,
+  LogIn,
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 
@@ -64,6 +65,8 @@ export default function AgencyPortal() {
     wholesalePlanId: '',
     billingCycle: 'monthly', // 'monthly' | 'yearly'
     autoRenew: true,
+    clientPlanName: 'Pro Reputation Plan',
+    clientRetailPrice: '₹999/mo',
   });
   const [submittingClient, setSubmittingClient] = useState(false);
 
@@ -188,6 +191,26 @@ export default function AgencyPortal() {
     }
   };
 
+  // Impersonate / Login as Client
+  const handleImpersonateClient = async (client: any) => {
+    try {
+      const res = await fetch('/api/auth/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId: client.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        showToast('error', data.error || 'Failed to login as client');
+      }
+    } catch (err: any) {
+      showToast('error', err.message);
+    }
+  };
+
   // Handle Client Manual Renewal
   const handleManualRenew = async () => {
     if (!renewModalClient) return;
@@ -244,6 +267,8 @@ export default function AgencyPortal() {
         wholesalePlanId: wholesalePlans[0]?.id || '',
         billingCycle: 'monthly',
         autoRenew: true,
+        clientPlanName: 'Pro Reputation Plan',
+        clientRetailPrice: '₹999/mo',
       });
       setActiveTab('clients');
       fetchData();
@@ -648,6 +673,16 @@ export default function AgencyPortal() {
                           {/* Actions */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* 1-Click Login as Client */}
+                              <button
+                                onClick={() => handleImpersonateClient(client)}
+                                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-[11px] font-bold border border-indigo-200 transition flex items-center gap-1 shadow-sm"
+                                title="Login and manage client dashboard"
+                              >
+                                <LogIn className="w-3 h-3 text-indigo-600" />
+                                Login
+                              </button>
+
                               {/* 1-Click Renew Button */}
                               <button
                                 onClick={() => {
@@ -800,7 +835,60 @@ export default function AgencyPortal() {
                 </div>
               </div>
 
-              {/* Step 2: Client & Business Details */}
+              {/* Step: Custom Retail Pricing & Agency Profit Margin */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-blue-50/70 border border-indigo-200 space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    2. Client Retail Plan & Margin (What your client sees):
+                  </label>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider">
+                    Wholesale cost hidden
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Plan Display Name (Client Sees This) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Pro Growth Plan or VIP Reputation Booster"
+                      value={clientForm.clientPlanName}
+                      onChange={(e) => setClientForm({ ...clientForm, clientPlanName: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Retail Price Charged to Client (Client Sees This) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={clientForm.billingCycle === 'yearly' ? 'e.g. ₹4,999/year' : 'e.g. ₹999/month'}
+                      value={clientForm.clientRetailPrice}
+                      onChange={(e) => setClientForm({ ...clientForm, clientRetailPrice: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs text-slate-900 font-black focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/90 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
+                  <span className="text-slate-600">
+                    Wholesale Cost to You: <strong className="text-rose-600">₹{calculatedDeduction}</strong> / {clientForm.billingCycle === 'yearly' ? 'year' : 'month'}
+                  </span>
+                  <span className="text-emerald-700 font-black flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    You collect retail payment directly from client via Cash/UPI
+                  </span>
+                </div>
+              </div>
+
+              {/* Step 3: Client & Business Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Business Name *</label>
@@ -1064,6 +1152,39 @@ export default function AgencyPortal() {
               <p className="text-xs text-slate-500 mt-1">
                 Customize how your agency branding appears to your sub-clients and in customer reviews.
               </p>
+            </div>
+
+            {/* White-Label Client Login URL Banner */}
+            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-black text-purple-900 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  Your White-Label Client Login Portal URL:
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 uppercase">
+                  100% Branded
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mb-3 leading-relaxed">
+                Send this link to your clients to login. It will dynamically show your Agency Logo, Brand Name, and Custom Footer instead of AI Magic Review!
+              </p>
+              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-purple-200 shadow-sm">
+                <code className="text-xs font-mono font-bold text-indigo-700 flex-1 truncate select-all">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/login?agency=${agency?.slug}` : `/login?agency=${agency?.slug}`}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/login?agency=${agency?.slug}`;
+                    navigator.clipboard.writeText(url);
+                    showToast('success', 'Branded client login URL copied!');
+                  }}
+                  className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Login Link</span>
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSaveBranding} className="space-y-5">

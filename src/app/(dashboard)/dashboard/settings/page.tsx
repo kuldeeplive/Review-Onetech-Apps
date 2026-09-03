@@ -1188,7 +1188,12 @@ export default function SettingsPage() {
           )}
         </form>
 
-        <Footer className="pt-8 pb-10" />
+        <Footer
+          className="pt-8 pb-10"
+          brandName={user?.business?.agency?.brandName || user?.business?.agency?.name}
+          footerText={user?.business?.agency?.customFooterText}
+          footerUrl={user?.business?.agency?.customFooterUrl}
+        />
       </main>
 
       {/* FLOATING STICKY SAVE BAR AT BOTTOM */}

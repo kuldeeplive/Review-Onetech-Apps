@@ -180,6 +180,8 @@ export async function POST(req: Request) {
       billingCycle = 'monthly', // 'monthly' | 'yearly'
       autoRenew = true,
       minPositiveRating = 4,
+      clientPlanName,
+      clientRetailPrice,
     } = body;
 
     if (!name || !ownerEmail || !ownerPassword) {
@@ -229,6 +231,10 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(ownerPassword, 10);
     const planExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
 
+    // Dynamic Retail Pricing Set by Agency (adds agency commission/margin)
+    const displayPlanName = clientPlanName?.trim() || `${wholesalePlan.name}`;
+    const displayPlanPrice = clientRetailPrice?.trim() || (isYearly ? `₹${wholesalePlan.pricePerYear * 2}/yr` : `₹${wholesalePlan.pricePerMonth * 3}/mo`);
+
     // 4. Atomic Transaction: Deduct Wallet + Create User + Create Business + Log Transaction
     const result = await prisma.$transaction(async (tx) => {
       const newBalance = agency.walletBalance - planCost;
@@ -262,8 +268,8 @@ export async function POST(req: Request) {
           services: services?.trim() || null,
           googleReviewUrl: googleReviewUrl?.trim() || 'https://maps.google.com',
           minPositiveRating: Number(minPositiveRating) || 4,
-          planName: `${wholesalePlan.name} (${isYearly ? 'Yearly' : 'Monthly'})`,
-          planPrice: `₹${planCost}`,
+          planName: displayPlanName,
+          planPrice: displayPlanPrice,
           planExpiresAt,
           monthlyScanLimit: wholesalePlan.monthlyScanLimit,
           wholesalePlanId: wholesalePlan.id,
@@ -279,7 +285,7 @@ export async function POST(req: Request) {
           agencyId: agency.id,
           amount: -planCost,
           type: 'CLIENT_PURCHASE',
-          description: `Activated Client: ${business.name} (${wholesalePlan.name} - ${isYearly ? '1 Year' : '1 Month'})`,
+          description: `Activated Client: ${business.name} (Wholesale: ₹${planCost} | Retail: ${displayPlanPrice})`,
           clientName: business.name,
           balanceAfter: newBalance,
         },

@@ -19,6 +19,19 @@ export async function GET() {
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
+        agency: {
+          select: {
+            id: true,
+            name: true,
+            brandName: true,
+            logoUrl: true,
+            themeColor: true,
+            customFooterText: true,
+            customFooterUrl: true,
+            supportEmail: true,
+            supportPhone: true,
+          },
+        },
       },
     });
 
@@ -74,6 +87,7 @@ export async function GET() {
         scansThisMonth: scansThisCycle,
         cycleResetDate: getNextBillingResetDate(business.createdAt),
       },
+      agency: business.agency || null,
       transactions: transactionsList,
     });
   } catch (error: any) {

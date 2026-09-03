@@ -1,16 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Lock, Mail, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import Footer from '@/components/Footer';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const agencySlug = searchParams.get('agency') || searchParams.get('slug');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Agency Branding state
+  const [brand, setBrand] = useState<{
+    name: string;
+    brandName: string;
+    logoUrl?: string;
+    themeColor?: string;
+    customFooterText?: string;
+    customFooterUrl?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (agencySlug) {
+      fetch(`/api/agency/public-brand?agency=${encodeURIComponent(agencySlug)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.brand) {
+            setBrand(data.brand);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [agencySlug]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +71,9 @@ export default function LoginPage() {
     }
   };
 
+  const brandName = brand?.brandName || brand?.name || 'AI Magic Review';
+  const logoUrl = brand?.logoUrl || '/logo.webp';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
       {/* Decorative Glow Backgrounds */}
@@ -55,16 +84,16 @@ export default function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-4">
         <div className="mb-4 flex justify-center">
           <img
-            src="/logo.webp"
-            alt="AI Magic Review"
-            className="h-24 sm:h-28 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform"
+            src={logoUrl}
+            alt={brandName}
+            className="h-20 sm:h-24 max-w-[200px] w-auto object-contain drop-shadow-md hover:scale-105 transition-transform"
           />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-          AI Magic Review
+          {brandName}
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
-          Smart 5-Star Google Review Management
+          {brand ? 'Client & Business Management Portal' : 'Smart 5-Star Google Review Management'}
         </p>
       </div>
 
@@ -139,8 +168,21 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Footer className="mt-2 text-slate-500" />
+        <Footer
+          className="mt-2 text-slate-500"
+          brandName={brandName}
+          footerText={brand?.customFooterText}
+          footerUrl={brand?.customFooterUrl}
+        />
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400">Loading portal...</div>}>
+      <LoginFormContent />
+    </Suspense>
   );
 }

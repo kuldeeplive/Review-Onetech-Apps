@@ -21,12 +21,26 @@ interface NavbarProps {
   user: {
     name: string;
     email: string;
-    role: 'SUPER_ADMIN' | 'BUSINESS_OWNER';
+    role: string;
     business?: {
       id: string;
       name: string;
       slug: string;
       primaryColor?: string;
+      agency?: {
+        name?: string;
+        brandName?: string;
+        logoUrl?: string;
+        themeColor?: string;
+        customFooterText?: string;
+        customFooterUrl?: string;
+      } | null;
+    } | null;
+    agency?: {
+      name?: string;
+      brandName?: string;
+      logoUrl?: string;
+      themeColor?: string;
     } | null;
     isImpersonating?: boolean;
   };
@@ -44,13 +58,19 @@ export default function Navbar({ user }: NavbarProps) {
   };
 
   const handleExitImpersonation = async () => {
-    await fetch('/api/auth/impersonate', { method: 'DELETE' });
-    router.push('/super-admin');
+    const res = await fetch('/api/auth/impersonate', { method: 'DELETE' });
+    const data = await res.json();
+    router.push(data.returnUrl || '/super-admin');
     router.refresh();
   };
 
   const isSuperAdmin = user.role === 'SUPER_ADMIN';
   const isDashboard = pathname.startsWith('/dashboard');
+
+  // Dynamic White-Label Brand identity
+  const agencyBranding = user.business?.agency || user.agency;
+  const brandName = agencyBranding?.brandName || agencyBranding?.name || 'AI Magic Review';
+  const logoUrl = agencyBranding?.logoUrl || '/logo.webp';
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm no-print">
@@ -66,7 +86,7 @@ export default function Navbar({ user }: NavbarProps) {
               onClick={handleExitImpersonation}
               className="ml-auto bg-white text-amber-800 hover:bg-amber-50 px-3 py-1 rounded-md text-xs font-bold transition flex items-center gap-1"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Return to Super Admin
+              <ArrowLeft className="w-3.5 h-3.5" /> Return to Admin
             </button>
           </div>
         </div>
@@ -81,16 +101,16 @@ export default function Navbar({ user }: NavbarProps) {
               className="flex items-center gap-2.5 group"
             >
               <img
-                src="/logo.webp"
-                alt="AI Magic Review"
-                className="h-10 w-auto max-w-[44px] object-contain group-hover:scale-105 transition-transform drop-shadow-sm"
+                src={logoUrl}
+                alt={brandName}
+                className="h-10 w-auto max-w-[120px] max-h-[44px] object-contain group-hover:scale-105 transition-transform drop-shadow-sm"
               />
               <div>
                 <span className="font-black text-lg text-slate-900 tracking-tight leading-none block">
-                  AI Magic Review
+                  {brandName}
                 </span>
                 <p className="text-[10px] text-slate-500 font-semibold tracking-wide mt-0.5">
-                  Smart Review & Reputation
+                  {agencyBranding ? 'Client Portal' : 'Smart Review & Reputation'}
                 </p>
               </div>
             </Link>
