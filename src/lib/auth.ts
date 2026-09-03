@@ -8,9 +8,13 @@ export interface AuthSession {
   userId: string;
   email: string;
   name: string;
-  role: 'SUPER_ADMIN' | 'BUSINESS_OWNER';
+  role: 'SUPER_ADMIN' | 'BUSINESS_OWNER' | 'AGENCY';
   businessId?: string;
   businessSlug?: string;
+  agencyId?: string;
+  agencySlug?: string;
+  agencyName?: string;
+  walletBalance?: number;
   isImpersonating?: boolean;
 }
 
@@ -51,6 +55,20 @@ export async function getCurrentUser(): Promise<AuthSession | null> {
           planExpiresAt: true,
         },
       },
+      agency: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          walletBalance: true,
+          brandName: true,
+          logoUrl: true,
+          themeColor: true,
+          customFooterText: true,
+          customFooterUrl: true,
+          isActive: true,
+        },
+      },
     },
   });
 
@@ -64,9 +82,13 @@ export async function getCurrentUser(): Promise<AuthSession | null> {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: user.role as 'SUPER_ADMIN' | 'BUSINESS_OWNER',
+    role: user.role as 'SUPER_ADMIN' | 'BUSINESS_OWNER' | 'AGENCY',
     businessId: decoded.impersonatedBusinessId || business?.id,
     businessSlug: decoded.impersonatedBusinessSlug || business?.slug,
+    agencyId: user.agency?.id,
+    agencySlug: user.agency?.slug,
+    agencyName: user.agency?.name,
+    walletBalance: user.agency?.walletBalance,
     isImpersonating: !!decoded.isImpersonating,
   };
 }

@@ -41,6 +41,9 @@ import {
   Layers,
   CreditCard,
   Package,
+  Wallet,
+  RotateCw,
+  Briefcase,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -53,7 +56,7 @@ export default function SuperAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'CLIENTS' | 'PLANS' | 'AI_CONFIG'>('CLIENTS');
+  const [activeTab, setActiveTab] = useState<'CLIENTS' | 'AGENCIES' | 'WHOLESALE_PLANS' | 'PLANS' | 'AI_CONFIG'>('CLIENTS');
 
   // Plans Management State
   const [plans, setPlans] = useState<any[]>([]);
@@ -243,6 +246,235 @@ export default function SuperAdminPage() {
       setAdminPasswordError(err.message);
     } finally {
       setAdminPasswordLoading(false);
+    }
+  };
+
+  // Agency Resellers State
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [agenciesLoading, setAgenciesLoading] = useState(false);
+  const [showAgencyModal, setShowAgencyModal] = useState(false);
+  const [showTopupModal, setShowTopupModal] = useState(false);
+  const [selectedAgencyForTopup, setSelectedAgencyForTopup] = useState<any>(null);
+  const [topupAmount, setTopupAmount] = useState('5000');
+  const [topupNote, setTopupNote] = useState('UPI / Bank Transfer Received');
+  const [topupLoading, setTopupLoading] = useState(false);
+
+  const [agencyForm, setAgencyForm] = useState({
+    name: '',
+    ownerName: '',
+    ownerEmail: '',
+    ownerPassword: '',
+    ownerPhone: '',
+    initialWalletBalance: 5000,
+    brandName: '',
+    customFooterText: '',
+    customFooterUrl: '',
+  });
+  const [agencySaving, setAgencySaving] = useState(false);
+  const [agencyError, setAgencyError] = useState('');
+
+  const fetchAgencies = async () => {
+    try {
+      setAgenciesLoading(true);
+      const res = await fetch('/api/super-admin/agencies');
+      const data = await res.json();
+      if (data.agencies) setAgencies(data.agencies);
+    } catch (err) {
+      console.error('Error fetching agencies:', err);
+    } finally {
+      setAgenciesLoading(false);
+    }
+  };
+
+  const handleCreateAgency = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setAgencySaving(true);
+      setAgencyError('');
+      const res = await fetch('/api/super-admin/agencies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agencyForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create agency');
+
+      setActionSuccess(`Agency "${data.agency.name}" created successfully!`);
+      setShowAgencyModal(false);
+      setAgencyForm({
+        name: '',
+        ownerName: '',
+        ownerEmail: '',
+        ownerPassword: '',
+        ownerPhone: '',
+        initialWalletBalance: 5000,
+        brandName: '',
+        customFooterText: '',
+        customFooterUrl: '',
+      });
+      fetchAgencies();
+      setTimeout(() => setActionSuccess(''), 4000);
+    } catch (err: any) {
+      setAgencyError(err.message);
+    } finally {
+      setAgencySaving(false);
+    }
+  };
+
+  const handleTopupWallet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAgencyForTopup) return;
+    try {
+      setTopupLoading(true);
+      const res = await fetch('/api/super-admin/agencies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agencyId: selectedAgencyForTopup.id,
+          action: 'TOPUP',
+          amount: Number(topupAmount),
+          note: topupNote,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to top-up wallet');
+
+      setActionSuccess(data.message);
+      setShowTopupModal(false);
+      setSelectedAgencyForTopup(null);
+      fetchAgencies();
+      setTimeout(() => setActionSuccess(''), 4000);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setTopupLoading(false);
+    }
+  };
+
+  const handleToggleAgencyStatus = async (agencyId: string) => {
+    try {
+      const res = await fetch('/api/super-admin/agencies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agencyId,
+          action: 'TOGGLE_ACTIVE',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAgencies((prev) =>
+          prev.map((a) => (a.id === agencyId ? { ...a, isActive: data.agency.isActive } : a))
+        );
+        setActionSuccess(`Agency status updated`);
+        setTimeout(() => setActionSuccess(''), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Wholesale Plans State
+  const [wholesalePlans, setWholesalePlans] = useState<any[]>([]);
+  const [wholesaleLoading, setWholesaleLoading] = useState(false);
+  const [showWholesaleModal, setShowWholesaleModal] = useState(false);
+  const [editingWholesalePlan, setEditingWholesalePlan] = useState<any>(null);
+  const [wholesaleForm, setWholesaleForm] = useState({
+    name: '',
+    pricePerMonth: 199,
+    pricePerYear: 1999,
+    monthlyScanLimit: 500,
+    description: '',
+  });
+  const [wholesaleSaving, setWholesaleSaving] = useState(false);
+  const [wholesaleError, setWholesaleError] = useState('');
+
+  const fetchWholesalePlans = async () => {
+    try {
+      setWholesaleLoading(true);
+      const res = await fetch('/api/super-admin/wholesale-plans');
+      const data = await res.json();
+      if (data.plans) setWholesalePlans(data.plans);
+    } catch (err) {
+      console.error('Error loading wholesale plans:', err);
+    } finally {
+      setWholesaleLoading(false);
+    }
+  };
+
+  const handleSaveWholesalePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setWholesaleSaving(true);
+      setWholesaleError('');
+      const method = editingWholesalePlan ? 'PATCH' : 'POST';
+      const body = editingWholesalePlan ? { id: editingWholesalePlan.id, ...wholesaleForm } : wholesaleForm;
+      const res = await fetch('/api/super-admin/wholesale-plans', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save wholesale plan');
+
+      setActionSuccess(editingWholesalePlan ? 'Wholesale plan updated!' : 'Wholesale plan created!');
+      setShowWholesaleModal(false);
+      setEditingWholesalePlan(null);
+      fetchWholesalePlans();
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err: any) {
+      setWholesaleError(err.message);
+    } finally {
+      setWholesaleSaving(false);
+    }
+  };
+
+  // Auto-Renew Toggle for Clients
+  const handleToggleAutoRenew = async (businessId: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch('/api/super-admin/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          action: 'TOGGLE_AUTORENEW',
+          autoRenew: !currentStatus,
+        }),
+      });
+      if (res.ok) {
+        setClients((prev) =>
+          prev.map((c) => (c.id === businessId ? { ...c, autoRenew: !currentStatus } : c))
+        );
+        setActionSuccess(`Auto-Renew turned ${!currentStatus ? 'ON' : 'OFF'}`);
+        setTimeout(() => setActionSuccess(''), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Quick Renew Client for Super Admin
+  const handleQuickRenew = async (businessId: string, days: number = 30) => {
+    try {
+      const res = await fetch('/api/super-admin/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          action: 'EXTEND_PLAN',
+          extendDays: days,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setActionSuccess(`Client extended by ${days} days!`);
+        setTimeout(() => setActionSuccess(''), 3000);
+        fetchData();
+      } else {
+        alert(data.error || 'Failed to extend client');
+      }
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -667,7 +899,37 @@ export default function SuperAdminPage() {
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>Clients Management ({clients.length})</span>
+            <span>Clients ({clients.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('AGENCIES');
+              fetchAgencies();
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+              activeTab === 'AGENCIES'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+            }`}
+          >
+            <Briefcase className="w-4 h-4 text-purple-500" />
+            <span>Agencies & Resellers ({agencies.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('WHOLESALE_PLANS');
+              fetchWholesalePlans();
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+              activeTab === 'WHOLESALE_PLANS'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+            }`}
+          >
+            <Wallet className="w-4 h-4 text-emerald-500" />
+            <span>Wholesale Plans ({wholesalePlans.length})</span>
           </button>
 
           <button
@@ -682,7 +944,7 @@ export default function SuperAdminPage() {
             }`}
           >
             <Layers className="w-4 h-4 text-indigo-500" />
-            <span>Plans & Pricing Packages ({plans.length})</span>
+            <span>Direct Plans ({plans.length})</span>
           </button>
 
           <button
@@ -697,7 +959,7 @@ export default function SuperAdminPage() {
             }`}
           >
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Global AI Engine & API Keys</span>
+            <span>AI Engine</span>
             <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-extrabold uppercase">
               {aiConfig.aiProvider === 'gemini' ? 'Gemini 1.5' : aiConfig.aiProvider === 'openai' ? 'GPT-4o' : 'Smart'}
             </span>
@@ -812,9 +1074,16 @@ export default function SuperAdminPage() {
                             {client.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm leading-tight">
-                              {client.name}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-slate-900 text-sm leading-tight">
+                                {client.name}
+                              </p>
+                              {client.agencyName && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-50 text-purple-700 border border-purple-200">
+                                  Agency: {client.agencyName}
+                                </span>
+                              )}
+                            </div>
                             <a
                               href={`/review/${client.slug}`}
                               target="_blank"
@@ -888,7 +1157,7 @@ export default function SuperAdminPage() {
                         </div>
                       </td>
 
-                      {/* Status Toggle (Kill Switch) */}
+                      {/* Status Toggle & Auto-Renew Switch */}
                       <td className="py-4 px-4">
                         <button
                           onClick={() => handleToggleStatus(client.id, client.isActive)}
@@ -910,11 +1179,41 @@ export default function SuperAdminPage() {
                             </>
                           )}
                         </button>
+
+                        {/* Per-Client Auto-Renew Switch */}
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAutoRenew(client.id, client.autoRenew)}
+                            className={`w-7 h-4 flex items-center rounded-full p-0.5 transition ${
+                              client.autoRenew ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                            title={`Toggle Auto-Renew (${client.autoRenew ? 'ON' : 'OFF'})`}
+                          >
+                            <div
+                              className={`bg-white w-3 h-3 rounded-full shadow transform transition ${
+                                client.autoRenew ? 'translate-x-3' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                          <span className={`text-[10px] font-bold ${client.autoRenew ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {client.autoRenew ? 'Auto-Renew ON' : 'Manual'}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="py-4 px-4 sm:px-6 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* 1-Click Extend / Renew Plan */}
+                          <button
+                            onClick={() => handleQuickRenew(client.id, 30)}
+                            title="Quick Extend / Renew Subscription (+30 Days)"
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs transition border border-emerald-200 shadow-sm"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* 1-Click Login as Client */}
                           <button
                             onClick={() => handleImpersonate(client.id)}
@@ -957,8 +1256,256 @@ export default function SuperAdminPage() {
       </div>
     )}
 
-    {/* TAB 2: PLANS & PRICING PACKAGES MANAGEMENT */}
-    {activeTab === 'PLANS' && (
+        {/* TAB: AGENCIES & RESELLERS MANAGEMENT */}
+        {activeTab === 'AGENCIES' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Header Banner */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Briefcase className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                    Agency Resellers & White-Label Partners
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Manage white-label agency partners, inspect sub-client volume, and top-up prepaid reseller wallets.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAgencyModal(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Onboard New Agency</span>
+              </button>
+            </div>
+
+            {/* Agencies Table */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  All Registered Resellers ({agencies.length})
+                </span>
+                <button
+                  onClick={fetchAgencies}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                  title="Refresh Agencies"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {agenciesLoading ? (
+                <div className="py-12 text-center text-slate-400 text-xs font-medium">
+                  Loading agencies...
+                </div>
+              ) : agencies.length === 0 ? (
+                <div className="py-16 text-center">
+                  <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-slate-800">No agencies onboarded yet</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                    Create your first white-label agency partner and grant them prepaid credits to resell to local businesses.
+                  </p>
+                  <button
+                    onClick={() => setShowAgencyModal(true)}
+                    className="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl shadow hover:bg-purple-700 transition"
+                  >
+                    + Onboard First Agency
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3 px-4">Agency / Brand</th>
+                        <th className="py-3 px-4">Owner Contact</th>
+                        <th className="py-3 px-4">Prepaid Wallet</th>
+                        <th className="py-3 px-4">Sub-Clients</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                      {agencies.map((agency) => (
+                        <tr key={agency.id} className="hover:bg-slate-50/60 transition">
+                          <td className="py-4 px-4">
+                            <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                              {agency.name}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              Brand: <strong>{agency.brandName || agency.name}</strong> • /{agency.slug}
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className="font-semibold text-slate-800">{agency.owner?.name}</div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-slate-400" /> {agency.owner?.email}
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-black text-emerald-700">
+                                ₹{Number(agency.walletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">
+                              Recharged: ₹{agency.totalRecharged || 0}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <div className="font-extrabold text-slate-900">
+                              {agency.activeClients} Active / {agency.totalClients} Total
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              Spent: ₹{agency.totalSpent || 0}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4 text-center">
+                            <button
+                              onClick={() => handleToggleAgencyStatus(agency.id)}
+                              className={`px-3 py-1 rounded-full text-xs font-bold transition shadow-sm ${
+                                agency.isActive
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : 'bg-rose-100 text-rose-800 border border-rose-300'
+                              }`}
+                            >
+                              {agency.isActive ? 'Active' : 'Suspended'}
+                            </button>
+                          </td>
+
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedAgencyForTopup(agency);
+                                  setShowTopupModal(true);
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition border border-emerald-200 shadow-sm flex items-center gap-1"
+                              >
+                                <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>+ Top-Up</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: WHOLESALE PLANS MANAGEMENT */}
+        {activeTab === 'WHOLESALE_PLANS' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Header Banner */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Wallet className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                    Wholesale Reseller Plans & Rates
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Define the wholesale rate deducted from agency wallets when onboarding or renewing sub-clients.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingWholesalePlan(null);
+                  setWholesaleForm({
+                    name: '',
+                    pricePerMonth: 199,
+                    pricePerYear: 1999,
+                    monthlyScanLimit: 500,
+                    description: '',
+                  });
+                  setShowWholesaleModal(true);
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Create Wholesale Plan</span>
+              </button>
+            </div>
+
+            {/* Wholesale Plans Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {wholesalePlans.map((wp) => (
+                <div
+                  key={wp.id}
+                  className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-base font-extrabold text-slate-900">{wp.name}</h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {wp.monthlyScanLimit === -1 ? 'Unlimited' : `${wp.monthlyScanLimit} Scans`}
+                      </span>
+                    </div>
+
+                    <div className="my-4 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-semibold text-slate-500">Monthly Wholesale:</span>
+                        <span className="text-base font-black text-slate-900">₹{wp.pricePerMonth}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-500">Yearly Wholesale:</span>
+                        <span className="text-sm font-black text-emerald-600">₹{wp.pricePerYear}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed min-h-[36px]">
+                      {wp.description || 'Standard wholesale tier for reseller partners.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-500">
+                      Clients: <strong>{wp._count?.businesses || 0}</strong>
+                    </span>
+                    <button
+                      onClick={() => {
+                        setEditingWholesalePlan(wp);
+                        setWholesaleForm({
+                          name: wp.name,
+                          pricePerMonth: wp.pricePerMonth,
+                          pricePerYear: wp.pricePerYear,
+                          monthlyScanLimit: wp.monthlyScanLimit,
+                          description: wp.description || '',
+                        });
+                        setShowWholesaleModal(true);
+                      }}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition"
+                    >
+                      Edit Rate
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: PLANS & PRICING PACKAGES MANAGEMENT */}
+        {activeTab === 'PLANS' && (
       <div className="space-y-6 animate-fadeIn">
         {/* Plans Header Banner */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -2510,6 +3057,341 @@ export default function SuperAdminPage() {
                     <>
                       <Check className="w-3.5 h-3.5" />
                       <span>{editingPlan ? 'Update Plan' : 'Create Plan'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1: ADD NEW AGENCY */}
+      {showAgencyModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-1">
+              <Briefcase className="w-5 h-5 text-purple-600" />
+              Onboard New Agency Reseller Partner
+            </h3>
+            <p className="text-xs text-slate-500 mb-5">
+              Create an agency partner account and assign initial prepaid wallet credits for reselling.
+            </p>
+
+            {agencyError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
+                {agencyError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateAgency} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Agency Company Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Apex Digital Media"
+                    value={agencyForm.name}
+                    onChange={(e) => setAgencyForm({ ...agencyForm, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Brand Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Apex Reviews"
+                    value={agencyForm.brandName}
+                    onChange={(e) => setAgencyForm({ ...agencyForm, brandName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Owner Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Amit Verma"
+                    value={agencyForm.ownerName}
+                    onChange={(e) => setAgencyForm({ ...agencyForm, ownerName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Owner Phone</label>
+                  <input
+                    type="text"
+                    placeholder="+91 9876543210"
+                    value={agencyForm.ownerPhone}
+                    onChange={(e) => setAgencyForm({ ...agencyForm, ownerPhone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Owner Email (Login ID) *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="partner@agency.com"
+                    value={agencyForm.ownerEmail}
+                    onChange={(e) => setAgencyForm({ ...agencyForm, ownerEmail: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Owner Password *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Set a secure password"
+                    value={agencyForm.ownerPassword}
+                    onChange={(e) => setAgencyForm({ ...agencyForm, ownerPassword: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Initial Prepaid Wallet Balance (₹)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="5000"
+                  value={agencyForm.initialWalletBalance}
+                  onChange={(e) => setAgencyForm({ ...agencyForm, initialWalletBalance: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Amount received from agency via UPI/Bank transfer.
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAgencyModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={agencySaving}
+                  className="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow transition flex items-center gap-1.5"
+                >
+                  {agencySaving ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Creating Agency...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Create Agency
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: TOP-UP AGENCY WALLET */}
+      {showTopupModal && selectedAgencyForTopup && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2 mb-1">
+              <Wallet className="w-5 h-5 text-emerald-600" />
+              Credit Prepaid Reseller Wallet
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Adding balance for <strong>{selectedAgencyForTopup.name}</strong>.
+            </p>
+
+            <form onSubmit={handleTopupWallet} className="space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-semibold">Current Wallet Balance:</span>
+                <span className="font-black text-emerald-700 text-sm">
+                  ₹{Number(selectedAgencyForTopup.walletBalance || 0).toFixed(2)}
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Top-Up Amount (₹) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="5000"
+                  value={topupAmount}
+                  onChange={(e) => setTopupAmount(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Payment Reference / Note</label>
+                <input
+                  type="text"
+                  placeholder="e.g. PhonePe UPI UTR: 123456789"
+                  value={topupNote}
+                  onChange={(e) => setTopupNote(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between">
+                <span>New Balance After Top-up:</span>
+                <span className="font-black">
+                  ₹{(Number(selectedAgencyForTopup.walletBalance || 0) + (Number(topupAmount) || 0)).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTopupModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition flex items-center gap-1.5"
+                >
+                  {topupLoading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Crediting Wallet...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Credit ₹{topupAmount} Now
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: WHOLESALE PLAN MODAL */}
+      {showWholesaleModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2 mb-1">
+              <Wallet className="w-5 h-5 text-emerald-600" />
+              {editingWholesalePlan ? 'Edit Wholesale Rate Card' : 'Create New Wholesale Plan'}
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Set wholesale price charged to agencies when reselling this tier.
+            </p>
+
+            {wholesaleError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
+                {wholesaleError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveWholesalePlan} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Plan Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Wholesale Growth"
+                  value={wholesaleForm.name}
+                  onChange={(e) => setWholesaleForm({ ...wholesaleForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Wholesale (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={wholesaleForm.pricePerMonth}
+                    onChange={(e) => setWholesaleForm({ ...wholesaleForm, pricePerMonth: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Yearly Wholesale (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={wholesaleForm.pricePerYear}
+                    onChange={(e) => setWholesaleForm({ ...wholesaleForm, pricePerYear: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Monthly QR Scan Limit (-1 for Unlimited) *</label>
+                <input
+                  type="number"
+                  required
+                  value={wholesaleForm.monthlyScanLimit}
+                  onChange={(e) => setWholesaleForm({ ...wholesaleForm, monthlyScanLimit: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Plan Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Brief summary of what this wholesale tier includes"
+                  value={wholesaleForm.description}
+                  onChange={(e) => setWholesaleForm({ ...wholesaleForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWholesaleModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={wholesaleSaving}
+                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition flex items-center gap-1.5"
+                >
+                  {wholesaleSaving ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Save Wholesale Plan
                     </>
                   )}
                 </button>

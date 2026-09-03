@@ -694,7 +694,12 @@ export default function PublicReviewPage() {
 
         </div>
 
-        <Footer className="mt-4 text-slate-500" />
+        <Footer
+          className="mt-4 text-slate-500"
+          brandName={business?.agency?.brandName || 'AI Magic Review'}
+          footerText={business?.agency?.customFooterText || 'Developed by Onetech Solution'}
+          footerUrl={business?.agency?.customFooterUrl || 'https://onetechsolution.in'}
+        />
       </div>
     </div>
   );

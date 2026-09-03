@@ -47,6 +47,13 @@ export async function GET() {
             createdAt: true,
           },
         },
+        agency: {
+          select: {
+            id: true,
+            name: true,
+            brandName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -112,6 +119,9 @@ export async function GET() {
         pendingFeedbacks: b.feedbacks.filter((f) => f.status === 'PENDING').length,
         positiveRedirects: positiveCount,
         negativeFeedbacks: negativeCount,
+        autoRenew: b.autoRenew ?? true,
+        agencyId: b.agencyId || null,
+        agencyName: b.agency?.name || null,
         createdAt: b.createdAt,
       };
     });
@@ -372,8 +382,22 @@ export async function PATCH(req: Request) {
       });
     }
 
+    // Handle toggle auto-renew
+    if (action === 'TOGGLE_AUTORENEW') {
+      const updated = await prisma.business.update({
+        where: { id: businessId },
+        data: { autoRenew: body.autoRenew !== undefined ? Boolean(body.autoRenew) : !currentBusiness.autoRenew },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `Auto-Renew turned ${updated.autoRenew ? 'ON' : 'OFF'} for ${updated.name}`,
+        autoRenew: updated.autoRenew,
+      });
+    }
+
     // Handle full client update
     const updateData: any = {};
+    if (body.autoRenew !== undefined) updateData.autoRenew = Boolean(body.autoRenew);
     if (name !== undefined) updateData.name = name;
     if (body.category !== undefined) updateData.category = body.category;
     if (body.bio !== undefined) updateData.bio = body.bio;

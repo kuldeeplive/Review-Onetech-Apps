@@ -39,11 +39,34 @@ export async function GET() {
       });
     }
 
+    // Fetch full fresh agency info if agency owner
+    let agencyDetails = null;
+    if (user.agencyId) {
+      agencyDetails = await prisma.agency.findUnique({
+        where: { id: user.agencyId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          walletBalance: true,
+          brandName: true,
+          logoUrl: true,
+          themeColor: true,
+          customFooterText: true,
+          customFooterUrl: true,
+          supportEmail: true,
+          supportPhone: true,
+          isActive: true,
+        },
+      });
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: {
         ...user,
         business: businessDetails,
+        agency: agencyDetails,
       },
     });
   } catch (error: any) {

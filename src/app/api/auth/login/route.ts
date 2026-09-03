@@ -23,6 +23,15 @@ export async function POST(req: Request) {
             planExpiresAt: true,
           },
         },
+        agency: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            walletBalance: true,
+            isActive: true,
+          },
+        },
       },
     });
 
@@ -46,12 +55,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // If Agency, check if agency account is active
+    if (user.role === 'AGENCY') {
+      if (user.agency && !user.agency.isActive) {
+        return NextResponse.json(
+          { error: 'Your agency partner account is currently inactive. Please contact administrator.' },
+          { status: 403 }
+        );
+      }
+    }
+
     const tokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
       businessId: user.businesses[0]?.id || null,
       businessSlug: user.businesses[0]?.slug || null,
+      agencyId: user.agency?.id || null,
+      agencySlug: user.agency?.slug || null,
     };
 
     const token = signToken(tokenPayload);
@@ -64,6 +85,7 @@ export async function POST(req: Request) {
         email: user.email,
         role: user.role,
         business: user.businesses[0] || null,
+        agency: user.agency || null,
       },
     });
 

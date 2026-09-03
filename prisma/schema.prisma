@@ -16,9 +16,12 @@ model User {
   name         String
   email        String     @unique
   password     String
-  role         String     @default("BUSINESS_OWNER") // "SUPER_ADMIN" | "BUSINESS_OWNER"
+  role         String     @default("BUSINESS_OWNER") // "SUPER_ADMIN" | "BUSINESS_OWNER" | "AGENCY"
   phone        String?
   businesses   Business[]
+  agency       Agency?
+  referralCode String?    @unique
+  referredBy   String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -68,6 +71,16 @@ model Business {
   planExpiresAt              DateTime?
   monthlyScanLimit           Int             @default(500) // -1 for Unlimited, or positive integer (e.g. 100, 500, 1000, 10000)
   
+  // Agency / Reseller & Auto-Renew Features
+  agencyId                   String?
+  agency                     Agency?         @relation("AgencyBusinesses", fields: [agencyId], references: [id], onDelete: SetNull)
+  autoRenew                  Boolean         @default(true) // Per-client auto-renew toggle
+  wholesalePlanId            String?
+  wholesalePlan              WholesalePlan?  @relation(fields: [wholesalePlanId], references: [id], onDelete: SetNull)
+  billingCycleDays           Int             @default(30) // 30 for monthly, 365 for yearly
+  referralCode               String?
+  referredBy                 String?
+
   // Alerts
   notificationEmail          String?
   notificationPhone          String?
@@ -145,5 +158,53 @@ model SubscriptionTransaction {
   paymentMethod String?   @default("DIRECT_ADMIN")
   notes         String?
   createdAt     DateTime  @default(now())
+}
+
+model Agency {
+  id                 String                    @id @default(cuid())
+  name               String
+  slug               String                    @unique
+  ownerId            String                    @unique
+  owner              User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  walletBalance      Float                     @default(0.0)
+  brandName          String?
+  logoUrl            String?
+  themeColor         String?                   @default("#2563eb")
+  customFooterText   String?                   @default("Powered by Onetech Partner")
+  customFooterUrl    String?                   @default("https://onetechsolution.in")
+  supportEmail       String?
+  supportPhone       String?
+  isActive           Boolean                   @default(true)
+  referralCode       String?                   @unique
+  referredBy         String?
+  businesses         Business[]                @relation("AgencyBusinesses")
+  walletTransactions AgencyWalletTransaction[]
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+}
+
+model AgencyWalletTransaction {
+  id           String   @id @default(cuid())
+  agencyId     String
+  agency       Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  amount       Float    // Positive for topup, negative for deduction
+  type         String   // "TOPUP", "CLIENT_PURCHASE", "CLIENT_RENEWAL", "REFERRAL_BONUS", "WITHDRAWAL"
+  description  String
+  clientName   String?
+  balanceAfter Float
+  createdAt    DateTime @default(now())
+}
+
+model WholesalePlan {
+  id               String     @id @default(cuid())
+  name             String     @unique
+  pricePerMonth    Float      @default(199.0)
+  pricePerYear     Float      @default(1999.0)
+  monthlyScanLimit Int        @default(500) // -1 for Unlimited
+  description      String?
+  isActive         Boolean    @default(true)
+  businesses       Business[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 }
 

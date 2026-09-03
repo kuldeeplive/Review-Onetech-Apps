@@ -43,6 +43,17 @@ export async function GET(
         monthlyScanLimit: true,
         planExpiresAt: true,
         createdAt: true,
+        agency: {
+          select: {
+            name: true,
+            brandName: true,
+            customFooterText: true,
+            customFooterUrl: true,
+            themeColor: true,
+            logoUrl: true,
+            isActive: true,
+          },
+        },
       },
     });
 
